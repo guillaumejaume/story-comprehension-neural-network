@@ -1,12 +1,12 @@
 class Story():
     def __init__(self, id, s1, s2, s3, s4, e_correct, e_incorrect):
-        self.id = id
-        self.s1 = s1
-        self.s2 = s2
-        self.s3 = s3
-        self.s4 = s4
-        self.e_correct = e_correct
-        self.e_incorrect = e_incorrect
+        self._id = id
+        self._s1 = s1
+        self._s2 = s2
+        self._s3 = s3
+        self._s4 = s4
+        self._e_correct = e_correct
+        self._e_incorrect = e_incorrect
 
     @property
     def id(self):
@@ -15,7 +15,7 @@ class Story():
            --------
            id: string
            """
-        return self.id
+        return self._id
 
     @id.setter
     def id(self, value):
@@ -25,7 +25,7 @@ class Story():
             value: string
             id
             """
-        self.id = value
+        self._id = value
 
     @property
     def s1(self):
@@ -35,7 +35,7 @@ class Story():
             s1: string
             First sentence
         """
-        return self.s1
+        return self._s1
 
     @s1.setter
     def s1(self, value):
@@ -45,7 +45,7 @@ class Story():
             value: string
             First sentence
             """
-        self.s1 = value
+        self._s1 = value
 
     @property
     def s2(self):
@@ -55,7 +55,7 @@ class Story():
             s2: string
             Second sentence
         """
-        return self.s2
+        return self._s2
 
     @s2.setter
     def s2(self, value):
@@ -65,7 +65,7 @@ class Story():
             value: string
             Second sentence
             """
-        self.s2 = value
+        self._s2 = value
 
     @property
     def s3(self):
@@ -75,7 +75,7 @@ class Story():
             s3: string
             Third sentence
         """
-        return self.s3
+        return self._s3
 
     @s3.setter
     def s3(self, value):
@@ -85,7 +85,7 @@ class Story():
             value: string
             Third sentence
             """
-        self.s3 = value
+        self._s3 = value
 
     @property
     def s4(self):
@@ -95,7 +95,7 @@ class Story():
             s4: string
             Forth sentence
         """
-        return self.s4
+        return self._s4
 
     @s4.setter
     def s4(self, value):
@@ -105,7 +105,7 @@ class Story():
             value: string
             Forth sentence
             """
-        self.s4 = value
+        self._s4 = value
 
     @property
     def e_correct(self):
@@ -115,7 +115,7 @@ class Story():
             e_correct: string
             Correct end of story
         """
-        return self.e_correct
+        return self._e_correct
 
     @e_correct.setter
     def e_correct(self, value):
@@ -125,7 +125,7 @@ class Story():
             value: string
             Correct end of story
             """
-        self.e_correct = value
+        self._e_correct = value
 
     @property
     def e_incorrect(self):
@@ -135,7 +135,7 @@ class Story():
                     e_incorrect: string
                     Incorrect end of story
         """
-        return self.e_incorrect
+        return self._e_incorrect
 
     @e_incorrect.setter
     def e_incorrect(self, value):
@@ -145,4 +145,4 @@ class Story():
             value: string
             Incorrect end of story
             """
-        self.e_incorrect = value
+        self._e_incorrect = value
