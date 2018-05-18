@@ -61,15 +61,15 @@ def load_and_process_data(filename):
 
     return list_of_sentences
 
-def generate_and_save_word_embeddings_for_sentences(input_file, embeddings_output_file, embeddings_id_output_file):
-    """ Generate the embeddings and save them to file
+def generate_and_save_word_embeddings_for_sentences(input_file, embeddings_output_file_path, embeddings_id_output_file):
+    """ Generate the embeddings and save them in a different file
        Parameters:
        -----------
        input_file: string
        path to the file to load the data from
 
-       embeddings_output_file: string
-       path to the file to save the embeddings in
+       embeddings_output_file_path: string
+       path to the directory to save the embeddings in
 
        embeddings_id_output_file: string
        path to the file to save the embeddings id in
@@ -78,24 +78,25 @@ def generate_and_save_word_embeddings_for_sentences(input_file, embeddings_outpu
     model = skipthoughts.load_model()
     encoder = skipthoughts.Encoder(model)
 
-    fout_id = open(embeddings_id_output_file, "wa")
-    fout_embeddings = open(embeddings_output_file, "ab")
+    fout_id = open(embeddings_id_output_file, "w")
     for story in list_of_stories:
-        embeddings = encoder.encode(story.get_sentences_as_list())
+        fout_embeddings = open(embeddings_output_file_path + story.id, "wb")
+        embeddings = encoder.encode(story.get_story_as_list())
+        np.save(fout_embeddings, embeddings)
+        fout_embeddings.close()
         fout_id.write(story.id)
         fout_id.write("\n")
-        np.save(fout_embeddings, embeddings)
     fout_id.close()
-    fout_embeddings.close()
 
 
 
-def load_embeddings(embeddings_input_file, embeddings_id_input_file):
+
+def load_embeddings(embeddings_input_path, embeddings_id_input_file):
     """ Load the embeddings from file
        Parameters:
        -----------
-       embeddings_input_file: string
-       path to the file to load the embeddings from
+       embeddings_input_file_path: string
+       path to the directory to load the embeddings from
 
        embeddings_id_input_file: string
        path to the file to load the embeddings id from
@@ -111,12 +112,11 @@ def load_embeddings(embeddings_input_file, embeddings_id_input_file):
     """
     embeddings = {}
     embeddings_id = load_raw_data(embeddings_id_input_file)
-    fin_emb = open(embeddings_input_file, "r")
     for i in range(len(embeddings_id)):
+        fin_emb = open(embeddings_input_path + embeddings_id[i], "r")
         emb = np.load(fin_emb)
+        fin_emb.close()
         embeddings[embeddings_id[i]] = emb
-    fin_emb.close()
-
     return embeddings, embeddings_id
 
 def select_embeddings(embeddings, type):
