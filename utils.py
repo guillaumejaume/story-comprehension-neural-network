@@ -1,6 +1,151 @@
-# @TODO import all the required packages
-import tensorflow as tf
+#import tensorflow as tf
 import numpy as np
+import csv
+import pprint
+import re
+import skipthoughts
+import codecs
+
+import sys
+reload(sys)
+sys.setdefaultencoding('UTF8')
+
+from story import Story
+#import sys
+#reload(sys)
+#sys.setdefaultencoding("utf-8")
+
+def load_raw_data(filename):
+    """ Load a file and read it line-by-line
+    Parameters:
+    -----------
+    filename: string
+    path to the file to load
+
+    Returns:
+    --------
+    raw: list of sentences
+    """
+    file = open(filename, "r")
+    raw_data = [line[:-1] for line in file]
+    file.close()
+    return raw_data
+
+def load_and_process_data(filename):
+    """ Load a file and create a list of sentences
+    Parameters:
+    -----------
+    filename: string
+    path to the file to load
+
+    Returns:
+    --------
+    raw: list of sentences
+    """
+    list_of_sentences = []
+    first_line = True
+    with open(filename) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if first_line:
+                first_line = False
+            else:
+                list_of_sentences.append(Story(row[0], #storyid
+                                              row[1], #storytitle
+                                              row[2], #sentence1
+                                              row[3], #sentence2
+                                              row[4], #sentence3
+                                              row[5], #sentence4
+                                              row[6]  #sentence5
+                                              ))
+
+    return list_of_sentences
+
+def generate_and_save_word_embeddings_for_sentences(input_file, embeddings_output_file, embeddings_id_output_file):
+    """ Generate the embeddings and save them to file
+       Parameters:
+       -----------
+       input_file: string
+       path to the file to load the data from
+
+       embeddings_output_file: string
+       path to the file to save the embeddings in
+
+       embeddings_id_output_file: string
+       path to the file to save the embeddings id in
+    """
+    list_of_stories = load_and_process_data(input_file)
+    model = skipthoughts.load_model()
+    encoder = skipthoughts.Encoder(model)
+
+    fout_id = open(embeddings_id_output_file, "wa")
+    fout_embeddings = open(embeddings_output_file, "ab")
+    for story in list_of_stories:
+        embeddings = encoder.encode(story.get_sentences_as_list())
+        fout_id.write(story.id)
+        fout_id.write("\n")
+        np.save(fout_embeddings, embeddings)
+    fout_id.close()
+    fout_embeddings.close()
 
 
-# @TODO list of all the functions
+
+def load_embeddings(embeddings_input_file, embeddings_id_input_file):
+    """ Load the embeddings from file
+       Parameters:
+       -----------
+       embeddings_input_file: string
+       path to the file to load the embeddings from
+
+       embeddings_id_input_file: string
+       path to the file to load the embeddings id from
+
+       type: string
+       decides the embeddings that will be loaded # (full - all 5 sentences), (plot = first 4 sentences),  (last_sentence = the 4th sentence), (ending = the 5th sentence)
+       Returns:
+       --------
+       embeddings: dictionary of embeddings
+
+       embeddings_id: list
+       list with the id of embeddings
+    """
+    embeddings = {}
+    embeddings_id = load_raw_data(embeddings_id_input_file)
+    fin_emb = open(embeddings_input_file, "r")
+    for i in range(len(embeddings_id)):
+        emb = np.load(fin_emb)
+        embeddings[embeddings_id[i]] = emb
+    fin_emb.close()
+
+    return embeddings, embeddings_id
+
+def select_embeddings(embeddings, type):
+    """ Select embeddings for a specific sentence/group of sentences based on the type of analysis
+       Parameters:
+       -----------
+       embeddings: dictionary
+       dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end]}
+
+       type: string
+       decides the embeddings that will be selected # (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence), (ending = the 5th sentence)
+       Returns:
+       --------
+       embeddings: dictionary of embeddings
+    """
+    embeddings_slice = {}
+    for key, value in embeddings.items():
+        if type == "full":
+            embeddings_slice[key] = value
+        elif type == "plot":
+            embeddings_slice[key] = value[:4]
+        elif type == "last_sentence":
+            embeddings_slice[key] = value[3]
+        elif type == "ending":
+            embeddings_slice[key] = value[4]
+
+    return embeddings_slice
+
+
+
+
+

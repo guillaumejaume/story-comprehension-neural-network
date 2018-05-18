@@ -13,8 +13,9 @@ import numpy as np
 
 # Data loading parameters
 tf.flags.DEFINE_float("val_sample_percentage", .001, "Percentage of the training data used for validation")
-tf.flags.DEFINE_string("data_file_path", "data/sentences.train", "Path to the training data")
-tf.flags.DEFINE_string("vocab_with_emb_path", "data/vocab_with_emb.txt", "Path to the vocabulary list")
+tf.flags.DEFINE_string("data_file_path", "data/train_stories_small.csv", "Path to the training data")
+tf.flags.DEFINE_string("path_to_embeddings", "data/embeddings_fin.txt", "Path to the embeddings")
+tf.flags.DEFINE_string("path_to_embeddings_id", "data/embeddings_id.txt", "Path to the embeddings id")
 
 # Model parameters
 tf.flags.DEFINE_integer("embedding_dimension", 100, "Dimensionality of word embeddings")
@@ -49,7 +50,7 @@ tf.flags.DEFINE_integer("intra_op_parallelism_threads", 0,
 FLAGS = tf.flags.FLAGS
 
 # Prepare the data
-print("Load vocabulary list \n")
+print("Load list of sentences \n")
 vocab = []
 generated_embeddings = []
 
