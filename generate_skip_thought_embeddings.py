@@ -3,9 +3,7 @@ import skipthoughts
 import utils
 from story import Story
 
-
-
-def generate_and_save_word_embeddings_for_sentences(input_file, embeddings_output_path, embeddings_id_output_file):
+def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_output_path, embeddings_id_output_file):
     """ Generate the embeddings and save them in a different file
        Parameters:
        -----------
@@ -24,13 +22,16 @@ def generate_and_save_word_embeddings_for_sentences(input_file, embeddings_outpu
 
     fout_id = open(embeddings_id_output_file, "w")
     for story in list_of_stories:
-        fout_embeddings = open(embeddings_output_path + story.id, "wb")
+        fout_embeddings = open(embeddings_output_path + story.id, "w")
         embeddings = encoder.encode(story.get_story_as_list())
-        np.save(fout_embeddings, embeddings)
+
+        for e in embeddings:
+            e.tofile(fout_embeddings, ",", "%f")
+            fout_embeddings.write("\n")
         fout_embeddings.close()
         fout_id.write(story.id)
         fout_id.write("\n")
     fout_id.close()
 
-generate_and_save_word_embeddings_for_sentences("data/train_stories.csv","./data/", "data/id.txt")
 
+generate_and_save_word_embeddings_for_sentences_text("./data/train_stories.csv","./data/embeddings/", "./data/embeddings/id.txt")

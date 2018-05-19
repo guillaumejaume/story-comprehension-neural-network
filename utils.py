@@ -3,15 +3,9 @@ import numpy as np
 import csv
 import pprint
 import re
-import skipthoughts
 import codecs
 
-import sys
-reload(sys)
-sys.setdefaultencoding('UTF8')
-
 from story import Story
-
 
 def load_raw_data(filename):
     """ Load a file and read it line-by-line
@@ -29,7 +23,26 @@ def load_raw_data(filename):
     file.close()
     return raw_data
 
-def load_and_process_data(filename):
+def load_numerical_data_in_list(filename):
+    """ Load a raw numerical data and convert them to a list of lists of floats
+        Parameters:
+        -----------
+        filename: string
+        path to the file to load
+
+        Returns:
+        --------
+        data: list of list of floats
+        """
+    raw_data = load_raw_data(filename)
+    raw_data = [row.split(",") for row in raw_data]
+    data = []
+    for element in raw_data:
+        data.append([float(i) for i in element])
+
+    return data
+
+def load_and_process_text_data(filename):
     """ Load a file and create a list of sentences
     Parameters:
     -----------
@@ -80,10 +93,9 @@ def load_embeddings(embeddings_input_path, embeddings_id_input_file):
     """
     embeddings = {}
     embeddings_id = load_raw_data(embeddings_id_input_file)
+    print(embeddings_id)
     for i in range(len(embeddings_id)):
-        fin_emb = open(embeddings_input_path + embeddings_id[i], "r")
-        emb = np.load(fin_emb)
-        fin_emb.close()
+        emb = load_numerical_data_in_list(embeddings_input_path + embeddings_id[i])
         embeddings[embeddings_id[i]] = emb
     return embeddings, embeddings_id
 
@@ -107,12 +119,11 @@ def select_embeddings(embeddings, type):
         elif type == "plot":
             embeddings_slice[key] = value[:4]
         elif type == "last_sentence":
-            embeddings_slice[key] = value[3]
+            embeddings_slice[key] = value[3] #3
         elif type == "ending":
-            embeddings_slice[key] = value[4]
+            embeddings_slice[key] = value[4] #4
 
     return embeddings_slice
-
 
 
 
