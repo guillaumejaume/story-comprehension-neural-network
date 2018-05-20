@@ -16,7 +16,7 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
        embeddings_id_output_file: string
        path to the file to save the embeddings id in
     """
-    list_of_stories = utils.load_and_process_data(input_file)
+    list_of_stories = utils.load_and_process_text_data(input_file)
     model = skipthoughts.load_model()
     encoder = skipthoughts.Encoder(model)
 
