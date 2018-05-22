@@ -63,7 +63,6 @@ print(len(ending_embeddings), "ee")
 
 # Split train/dev sets
 val_sample_index = -1 * int(FLAGS.val_sample_percentage * float(len(labels)))
-val_sample_index = 6
 
 x1_train, x1_val = beginning_of_story_embeddings[:val_sample_index], beginning_of_story_embeddings[val_sample_index:]
 x2_train, x2_val = ending_embeddings[:val_sample_index], ending_embeddings[val_sample_index:]
@@ -104,14 +103,14 @@ with tf.Graph().as_default():
         # Define Adam optimizer
         learning_rate = 0.0002
         optimizer = tf.train.AdamOptimizer(learning_rate)
-        train_op = optimizer.minimize(model.loss)
+        train_op = optimizer.minimize(model.loss, global_step=global_step)
 
         # Output directory for models and summaries
         timestamp = str(int(time.time()))
         out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
         print("Writing to {}\n".format(out_dir))
 
-        # Summaries for loss, perplexity and accuracy
+        # Summaries for loss and accuracy
         loss_summary = tf.summary.scalar("loss", model.loss)
         acc_summary = tf.summary.scalar("accuracy", model.accuracy)
 
@@ -146,14 +145,14 @@ with tf.Graph().as_default():
                 model.inputs_2: inputs_2,
                 model.labels: labels,
             }
-            _, step, summaries, loss, perplexity, accuracy = sess.run([train_op,
+            _, step, summaries, loss, accuracy = sess.run([train_op,
                                                                        global_step,
                                                                        train_summary_op,
                                                                        model.loss,
                                                                        model.accuracy], feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print('\n\n')
-            print("{}: step {}, perplexity {:g}, acc {:g}".format(time_str, step, perplexity, accuracy))
+            print("{}: step {}, acc {:g}".format(time_str, step, accuracy))
             train_summary_writer.add_summary(summaries, step)
 
         def dev_step(inputs_1, inputs_2, labels, writer=None):
@@ -165,12 +164,12 @@ with tf.Graph().as_default():
                 model.inputs_2: inputs_2,
                 model.labels: labels,
             }
-            step, summaries, predictions, perplexity, accuracy = sess.run([global_step,
+            step, summaries, predictions, accuracy = sess.run([global_step,
                                                                            val_summary_op,
                                                                            model.predictions,
                                                                            model.accuracy], feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, perplexity {:g}, acc {:g}".format(time_str, step, perplexity, accuracy))
+            print("{}: step {}, acc {:g}".format(time_str, step, accuracy))
             print('Predictions: ', predictions)
             if writer:
                 writer.add_summary(summaries, step)
@@ -180,9 +179,10 @@ with tf.Graph().as_default():
             x1_batch, x2_batch, y_batch = zip(*batch)
             train_step(x1_batch, x2_batch, y_batch)
             current_step = tf.train.global_step(sess, global_step)
+            print("current_step ", current_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                dev_step(x1_val, x2_val, y_val, vocab_emb, writer=val_summary_writer)
+                dev_step(x1_val, x2_val, y_val, writer=val_summary_writer)
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)

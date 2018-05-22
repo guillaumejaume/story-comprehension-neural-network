@@ -49,9 +49,11 @@ class Model:
 
                 self.predictions = tf.argmax(self.probabilities,
                                              axis=1,
-                                             output_type=tf.int32,
-                                             name='predictions')
+                                             name='predictions',
+                                             output_type=tf.int32)
+
                 self.is_equal = tf.equal(self.predictions, self.labels)
+
                 self.accuracy = tf.reduce_mean(tf.cast(self.is_equal, tf.float32),
                                                name='accuracy')
 
