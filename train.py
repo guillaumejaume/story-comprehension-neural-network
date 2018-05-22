@@ -14,8 +14,8 @@ import numpy as np
 # Data loading parameters
 tf.flags.DEFINE_float("val_sample_percentage", .001, "Percentage of the training data used for validation")
 tf.flags.DEFINE_string("data_file_path", "data/train_stories_small.csv", "Path to the training data")
-tf.flags.DEFINE_string("path_to_embeddings", "./data/embeddings_small/", "Path to the embeddings")
-tf.flags.DEFINE_string("path_to_embeddings_id", "./data/embeddings_small/id.txt", "Path to the embeddings id")
+tf.flags.DEFINE_string("path_to_embeddings", "./data/embeddings/", "Path to the embeddings")
+tf.flags.DEFINE_string("path_to_embeddings_id", "./data/embeddings/id.txt", "Path to the embeddings id")
 tf.flags.DEFINE_string("story_type", "last_sentence", "Story type: {no_context, last_sentence, plot (first 4 sentences), full (4 sentences + ending)}")
 
 
@@ -104,7 +104,7 @@ with tf.Graph().as_default():
         # Define Adam optimizer
         learning_rate = 0.0002
         optimizer = tf.train.AdamOptimizer(learning_rate)
-        train_op = optimizer.minimize()
+        train_op = optimizer.minimize(model.loss)
 
         # Output directory for models and summaries
         timestamp = str(int(time.time()))
