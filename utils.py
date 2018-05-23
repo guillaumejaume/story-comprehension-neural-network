@@ -25,19 +25,30 @@ def load_raw_data(filename):
     file.close()
     return raw_data
 
-def load_numerical_data_in_list(filename):
+def load_numerical_data_in_list(filename, num_embeddings, dim_embeddings):
     """ Load a float list from a binary file
         Parameters:
         -----------
         filename: string
         path to the file to load
 
+        num_embeddings_per_story: int
+        number of embeddings per story
+
+        embeddings_dim: int
+        the dimension of the embedding
+
         Returns:
         --------
         data: list of floats
         """
     f = open(filename, 'rb')
-    data = np.fromfile(f, 'f')
+    temp = np.fromfile(f, 'f')
+    data = []
+    for i in range(num_embeddings):
+        d = temp[i * dim_embeddings:(i+1) * dim_embeddings]
+        print(len(d))
+        data.append(d)
     print(data)
     return data
 
@@ -71,7 +82,7 @@ def load_and_process_text_data(filename):
 
     return list_of_sentences
 
-def load_embeddings(embeddings_input_path, embeddings_id_input_file):
+def load_embeddings(embeddings_input_path, embeddings_id_input_file, num_embeddings_per_story, embeddings_dim):
     """ Load the embeddings from file
        Parameters:
        -----------
@@ -81,8 +92,11 @@ def load_embeddings(embeddings_input_path, embeddings_id_input_file):
        embeddings_id_input_file: string
        path to the file to load the embeddings id from
 
-       type: string
-       decides the embeddings that will be loaded # (full - all 5 sentences), (plot = first 4 sentences),  (last_sentence = the 4th sentence), (ending = the 5th sentence)
+       num_embeddings_per_story: int
+       number of embeddings per story
+
+       embeddings_dim: int
+       the dimension of the embedding
        Returns:
        --------
        embeddings: dictionary of embeddings
@@ -92,12 +106,8 @@ def load_embeddings(embeddings_input_path, embeddings_id_input_file):
     """
     embeddings = {}
     embeddings_id = load_raw_data(embeddings_id_input_file)
-    num_embeddings = 5
     for i in range(len(embeddings_id)):
-        emb = []
-        for j in range(num_embeddings):
-            e = load_numerical_data_in_list(embeddings_input_path + embeddings_id[i]+str(j))
-            emb.append(e)
+        emb = load_numerical_data_in_list(embeddings_input_path + embeddings_id[i], num_embeddings_per_story, embeddings_dim)
         embeddings[embeddings_id[i]] = emb
 
     return embeddings, embeddings_id

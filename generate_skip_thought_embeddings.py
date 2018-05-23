@@ -25,13 +25,13 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
     for story in list_of_stories:
         embeddings = encoder.encode(story.get_story_as_list())
 
-        for i, embed in enumerate(embeddings):
+        output_file = open(embeddings_output_path + story.id, "wb")
+        for embed in embeddings:
             b = bytes()
             b = b.join((struct.pack('f', e) for e in embed))
             print embed
-            output_file = open(embeddings_output_path + story.id + str(i), "wb")
             output_file.write(b)
-            output_file.close()
+        output_file.close()
         fout_id.write(story.id)
         fout_id.write("\n")
     fout_id.close()

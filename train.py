@@ -17,7 +17,8 @@ tf.flags.DEFINE_string("data_file_path", "data/train_stories.csv", "Path to the 
 tf.flags.DEFINE_string("path_to_embeddings", "./data/embeddings/", "Path to the embeddings")
 tf.flags.DEFINE_string("path_to_embeddings_id", "./data/embeddings/id.txt", "Path to the embeddings id")
 tf.flags.DEFINE_string("story_type", "last_sentence", "Story type: {no_context, last_sentence, plot (first 4 sentences), full (4 sentences + ending)}")
-
+tf.flags.DEFINE_string("num_embeddings_per_story", 5, "The number of sentences in a story.")
+tf.flags.DEFINE_string("embeddings_dim", 4800, "The dimension of the embeddings")
 
 # Model parameters
 
@@ -48,7 +49,7 @@ FLAGS = tf.flags.FLAGS
 # Prepare the data
 print("Load list of sentences \n")
 vocab = []
-story_embeddings, generated_embeddings_id = utils.load_embeddings(FLAGS.path_to_embeddings, FLAGS.path_to_embeddings_id)
+story_embeddings, generated_embeddings_id = utils.load_embeddings(FLAGS.path_to_embeddings, FLAGS.path_to_embeddings_id,FLAGS.num_embeddings_per_story, FLAGS.embeddings_dim )
 print("Loading and preprocessing training and validation datasets \n")
 beginning_of_story_embeddings,  ending_embeddings, labels = utils.generate_data(story_embeddings, FLAGS.story_type)
 
@@ -63,7 +64,7 @@ print(len(ending_embeddings), "ee")
 
 # Split train/dev sets
 val_sample_index = -1 * int(FLAGS.val_sample_percentage * float(len(labels)))
-
+val_sample_index = 5
 x1_train, x1_val = beginning_of_story_embeddings[:val_sample_index], beginning_of_story_embeddings[val_sample_index:]
 x2_train, x2_val = ending_embeddings[:val_sample_index], ending_embeddings[val_sample_index:]
 y_train, y_val = labels[:val_sample_index], labels[val_sample_index:]
