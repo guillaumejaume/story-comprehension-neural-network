@@ -29,7 +29,6 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
         for embed in embeddings:
             b = bytes()
             b = b.join((struct.pack('f', e) for e in embed))
-            print embed
             output_file.write(b)
         output_file.close()
         fout_id.write(story.id)

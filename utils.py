@@ -1,7 +1,6 @@
 #import tensorflow as tf
 import numpy as np
 import csv
-import pprint
 import re
 import codecs
 import random
@@ -47,9 +46,7 @@ def load_numerical_data_in_list(filename, num_embeddings, dim_embeddings):
     data = []
     for i in range(num_embeddings):
         d = temp[i * dim_embeddings:(i+1) * dim_embeddings]
-        print(len(d))
         data.append(d)
-    print(data)
     return data
 
 def load_and_process_text_data(filename):
