@@ -12,8 +12,8 @@ import numpy as np
 #Training parameters
 
 # Data loading parameters
-tf.flags.DEFINE_float("val_sample_percentage", .001, "Percentage of the training data used for validation")
-tf.flags.DEFINE_string("data_file_path", "data/train_stories_small.csv", "Path to the training data")
+tf.flags.DEFINE_float("val_sample_percentage", .01, "Percentage of the training data used for validation")
+tf.flags.DEFINE_string("data_file_path", "data/train_stories.csv", "Path to the training data")
 tf.flags.DEFINE_string("path_to_embeddings", "./data/embeddings/", "Path to the embeddings")
 tf.flags.DEFINE_string("path_to_embeddings_id", "./data/embeddings/id.txt", "Path to the embeddings id")
 tf.flags.DEFINE_string("story_type", "last_sentence", "Story type: {no_context, last_sentence, plot (first 4 sentences), full (4 sentences + ending)}")

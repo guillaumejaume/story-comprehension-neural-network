@@ -2,6 +2,7 @@ import numpy as np
 import skipthoughts
 import utils
 from story import Story
+import struct
 
 def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_output_path, embeddings_id_output_file):
     """ Generate the embeddings and save them in a different file
@@ -20,15 +21,17 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
     model = skipthoughts.load_model()
     encoder = skipthoughts.Encoder(model)
 
-    fout_id = open(embeddings_id_output_file, "w")
+    fout_id = open(embeddings_id_output_file, "wb")
     for story in list_of_stories:
-        fout_embeddings = open(embeddings_output_path + story.id, "w")
         embeddings = encoder.encode(story.get_story_as_list())
 
-        for e in embeddings:
-            e.tofile(fout_embeddings, ",", "%f")
-            fout_embeddings.write("\n")
-        fout_embeddings.close()
+        for i, embed in enumerate(embeddings):
+            b = bytes()
+            b = b.join((struct.pack('f', e) for e in embed))
+            print embed
+            output_file = open(embeddings_output_path + story.id + str(i), "wb")
+            output_file.write(b)
+            output_file.close()
         fout_id.write(story.id)
         fout_id.write("\n")
     fout_id.close()

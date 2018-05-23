@@ -26,7 +26,7 @@ def load_raw_data(filename):
     return raw_data
 
 def load_numerical_data_in_list(filename):
-    """ Load a raw numerical data and convert them to a list of lists of floats
+    """ Load a float list from a binary file
         Parameters:
         -----------
         filename: string
@@ -34,14 +34,11 @@ def load_numerical_data_in_list(filename):
 
         Returns:
         --------
-        data: list of list of floats
+        data: list of floats
         """
-    raw_data = load_raw_data(filename)
-    raw_data = [row.split(",") for row in raw_data]
-    data = []
-    for element in raw_data:
-        data.append([float(i) for i in element])
-
+    f = open(filename, 'rb')
+    data = np.fromfile(f, 'f')
+    print(data)
     return data
 
 def load_and_process_text_data(filename):
@@ -95,9 +92,14 @@ def load_embeddings(embeddings_input_path, embeddings_id_input_file):
     """
     embeddings = {}
     embeddings_id = load_raw_data(embeddings_id_input_file)
+    num_embeddings = 5
     for i in range(len(embeddings_id)):
-        emb = load_numerical_data_in_list(embeddings_input_path + embeddings_id[i])
+        emb = []
+        for j in range(num_embeddings):
+            e = load_numerical_data_in_list(embeddings_input_path + embeddings_id[i]+str(j))
+            emb.append(e)
         embeddings[embeddings_id[i]] = emb
+
     return embeddings, embeddings_id
 
 def select_embeddings_for_model(embeddings, model_type, has_right_ending = True, embedding_dimension = 4800):
