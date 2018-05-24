@@ -12,14 +12,15 @@ import numpy as np
 #Training parameters
 
 # Data loading parameters
-tf.flags.DEFINE_float("val_sample_percentage", .01, "Percentage of the training data used for validation")
-tf.flags.DEFINE_string("data_file_path", "data/train_stories.csv", "Path to the training data")
-tf.flags.DEFINE_string("path_to_embeddings", "./data/embeddings/", "Path to the embeddings")
-tf.flags.DEFINE_string("path_to_embeddings_id", "./data/embeddings/id.txt", "Path to the embeddings id")
+tf.flags.DEFINE_string("path_to_training_embeddings", "./data/embeddings/", "Path to the embeddings used for training")
+tf.flags.DEFINE_string("path_to_validation_embeddings", "./data/embeddings_test/", "Path to the embeddings used for validation")
+tf.flags.DEFINE_string("path_to_training_ids", "./data/embeddings/id.txt", "Path to the file with the sentences' ids used for training")
+tf.flags.DEFINE_string("path_to_validation_ids", "./data/validation_ids.txt", "Path to the file with the sentences' ids used for validation")
 tf.flags.DEFINE_string("story_type", "last_sentence", "Story type: {no_context, last_sentence, plot (first 4 sentences), full (4 sentences + ending)}")
-tf.flags.DEFINE_string("num_embeddings_per_story", 5, "The number of sentences in a story.")
+tf.flags.DEFINE_string("num_embeddings_per_story_for_training", 5, "The number of sentences in a story.")
+tf.flags.DEFINE_string("num_embeddings_per_story_for_validation", 6, "The number of sentences in a story.")
 tf.flags.DEFINE_string("embeddings_dim", 4800, "The dimension of the embeddings")
-tf.flags.DEFINE_string("generate_radom_ending", True, "Generate random ending for the dataset that lacks it (eg. training dataset)")
+tf.flags.DEFINE_string("generate_random_ending", True, "Generate random ending for the dataset that lacks it (eg. training dataset)")
 
 # Model parameters
 
@@ -48,26 +49,19 @@ tf.flags.DEFINE_integer("intra_op_parallelism_threads", 0,
 FLAGS = tf.flags.FLAGS
 
 # Prepare the data
-print("Load list of sentences \n")
-story_embeddings, embeddings_id = utils.load_embeddings(FLAGS.path_to_embeddings, FLAGS.path_to_embeddings_id, FLAGS.num_embeddings_per_story, FLAGS.embeddings_dim)
+print("Load embeddings for training and validation \n")
+story_embeddings, story_ids = utils.load_embeddings(FLAGS.path_to_training_embeddings, FLAGS.path_to_training_ids, FLAGS.num_embeddings_per_story_for_training, FLAGS.embeddings_dim)
+validation_story_embeddings, validation_story_ids = utils.load_embeddings(FLAGS.path_to_validation_embeddings, FLAGS.path_to_validation_ids, FLAGS.num_embeddings_per_story_for_validation, FLAGS.embeddings_dim)
 print("Loading and preprocessing training and validation datasets \n")
 beginning_of_story_embeddings,  ending_embeddings, labels = utils.generate_training_data(story_embeddings, FLAGS.story_type, FLAGS.generate_random_ending)
 
-# Randomly shuffle data
-data = list(zip(beginning_of_story_embeddings, ending_embeddings, labels))
-random.shuffle(data)
-beginning_of_story_embeddings, ending_embeddings, labels = zip(*data)
+validation_story_ids = utils.load_raw_data(FLAGS.path_to_validation_ids)
+validation_story_embeddings = utils.filter_data_based_on_ids(validation_story_embeddings, validation_story_ids)
+beginning_of_story_embeddings_val,  ending_embeddings_val, labels_val = utils.generate_validation_data(validation_story_embeddings, FLAGS.story_type)
 
-print(len(labels), "labels")
-print(len(beginning_of_story_embeddings), "bose")
-print(len(ending_embeddings), "ee")
-
-# Split train/dev sets
-val_sample_index = -1 * int(FLAGS.val_sample_percentage * float(len(labels)))
-val_sample_index = 5
-x_beginning_train, x_beginning_val = beginning_of_story_embeddings[:val_sample_index], beginning_of_story_embeddings[val_sample_index:]
-x_ending_train, x_ending_val = ending_embeddings[:val_sample_index], ending_embeddings[val_sample_index:]
-y_train, y_val = labels[:val_sample_index], labels[val_sample_index:]
+# Randomly shuffle training and validation data
+x_beginning_train, x_ending_train, y_train = utils.shuffle_data(beginning_of_story_embeddings, ending_embeddings, labels)
+x_beginning_val, x_ending_val, y_val = utils.shuffle_data(beginning_of_story_embeddings_val, ending_embeddings_val, labels_val)
 
 # Summary of the loaded data
 print('Loaded: ', len(x_beginning_train), ' samples for training')
