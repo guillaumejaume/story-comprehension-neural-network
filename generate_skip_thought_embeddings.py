@@ -4,7 +4,7 @@ import utils
 from story import Story
 import struct
 
-def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_output_path, embeddings_id_output_file):
+def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_output_path, embeddings_id_output_file, for_testing = False):
     """ Generate the embeddings and save them in a different file
        Parameters:
        -----------
@@ -23,8 +23,10 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
 
     fout_id = open(embeddings_id_output_file, "wb")
     for story in list_of_stories:
-        embeddings = encoder.encode(story.get_story_as_list())
-
+        if not for_testing:
+            embeddings = encoder.encode(story.get_story_with_right_ending_as_list())
+        else:
+            embeddings = encoder.encode(story.get_story_with_both_endings_as_list())
         output_file = open(embeddings_output_path + story.id, "wb")
         for embed in embeddings:
             b = bytes()
@@ -36,4 +38,5 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
     fout_id.close()
 
 
-generate_and_save_word_embeddings_for_sentences_text("./data/train_stories.csv","./data/embeddings/", "./data/embeddings/id.txt")
+#generate_and_save_word_embeddings_for_sentences_text("./data/train_stories.csv","./data/embeddings/", "./data/embeddings/id.txt")
+generate_and_save_word_embeddings_for_sentences_text("./data/cloze_test_val__spring2016 - cloze_test_ALL_val.csv","./data/embeddings_test/", "./data/embeddings_test/id.txt", True)
