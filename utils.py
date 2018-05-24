@@ -26,21 +26,21 @@ def load_raw_data(filename):
 
 def load_numerical_data_in_list(filename, num_embeddings, dim_embeddings):
     """ Load a float list from a binary file
-        Parameters:
-        -----------
-        filename: string
-        path to the file to load
+    Parameters:
+    -----------
+    filename: string
+    path to the file to load
 
-        num_embeddings_per_story: int
-        number of embeddings per story
+    num_embeddings_per_story: int
+    number of embeddings per story
 
-        embeddings_dim: int
-        the dimension of the embedding
+    embeddings_dim: int
+    the dimension of the embedding
 
-        Returns:
-        --------
-        data: list of floats
-        """
+    Returns:
+    --------
+    data: list of floats
+    """
     f = open(filename, 'rb')
     temp = np.fromfile(f, 'f')
     data = []
@@ -79,9 +79,8 @@ def load_and_process_text_data(filename, for_testing = False):
                             row[6]  #right_ending
                         )
                     )
-
                 else:
-                    if row[7] == 1:
+                    if int(row[7]) == 1:
                         list_of_sentences.append(
                             Story(
                                 row[0],  # storyid
@@ -110,52 +109,52 @@ def load_and_process_text_data(filename, for_testing = False):
 
 def load_embeddings(embeddings_input_path, embeddings_id_input_file, num_embeddings_per_story, embeddings_dim):
     """ Load the embeddings from file
-       Parameters:
-       -----------
-       embeddings_input_file_path: string
-       path to the directory to load the embeddings from
+    Parameters:
+    -----------
+    embeddings_input_file_path: string
+    path to the directory to load the embeddings from
 
-       embeddings_id_input_file: string
-       path to the file to load the embeddings id from
+    embeddings_id_input_file: string
+    path to the file to load the embeddings id from
 
-       num_embeddings_per_story: int
-       number of embeddings per story
+    num_embeddings_per_story: int
+    number of embeddings per story
 
-       embeddings_dim: int
-       the dimension of the embedding
-       Returns:
-       --------
-       embeddings: dictionary of embeddings
+    embeddings_dim: int
+    the dimension of the embedding
+    Returns:
+    --------
+    embeddings: dictionary of embeddings
 
-       embeddings_id: list
-       list with the id of embeddings
+    story_ids: list
+    list with the id of embeddings
     """
     embeddings = {}
-    embeddings_id = load_raw_data(embeddings_id_input_file)
-    for i in range(len(embeddings_id)):
-        emb = load_numerical_data_in_list(embeddings_input_path + embeddings_id[i], num_embeddings_per_story, embeddings_dim)
-        embeddings[embeddings_id[i]] = emb
+    story_ids = load_raw_data(embeddings_id_input_file)
+    for i in range(len(story_ids)):
+        emb = load_numerical_data_in_list(embeddings_input_path + story_ids[i], num_embeddings_per_story, embeddings_dim)
+        embeddings[story_ids[i]] = emb
 
-    return embeddings, embeddings_id
+    return embeddings, story_ids
 
 def select_embeddings_for_model(embeddings, model_type, has_right_ending = True, embedding_dimension = 4800):
     """ Select embeddings for a specific sentence/group of sentences based on the type of analysis
-       Parameters:
-       -----------
-       embeddings: dictionary
-       dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end]}
+    Parameters:
+    -----------
+    embeddings: dictionary
+    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end]}
 
-       model_type: string
-       decides the embeddings that will be selected # (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
+    model_type: string
+    decides the embeddings that will be selected # (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
 
-       has_right_ending: bool
-       decides if has the right ending or not. If not, "wrong" is appended to each key in the dictionary
+    has_right_ending: bool
+    decides if has the right ending or not. If not, "wrong" is appended to each key in the dictionary
 
-       embedding_dimension: int
-       the dimension of the embedding
-       Returns:
-       --------
-       embeddings: dictionary of embeddings
+    embedding_dimension: int
+    the dimension of the embedding
+    Returns:
+    --------
+    embeddings: dictionary of embeddings
     """
     embeddings_slice = {}
     for key, value in embeddings.items():
@@ -175,20 +174,20 @@ def select_embeddings_for_model(embeddings, model_type, has_right_ending = True,
 
 def select_endings(embeddings, is_right_ending = True, modify_key = True):
     """ Select ending embeddings for a specific sentence/group of sentences
-       Parameters:
-       -----------
-       embeddings: dictionary
-       dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end]}
+    Parameters:
+    -----------
+    embeddings: dictionary
+    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end]}
 
-       modify_key: bool
-       used to modify the key if wrong ending
+    modify_key: bool
+    used to modify the key if wrong ending
 
-       Returns:
-       --------
-       ending_embeddings: dictionary of embeddings
+    Returns:
+    --------
+    ending_embeddings: dictionary of embeddings
 
-       labels: dictionary
-       dictionary of labels
+    labels: dictionary
+    dictionary of labels
     """
     ending_embeddings = {}
     labels = {}
@@ -207,19 +206,18 @@ def select_endings(embeddings, is_right_ending = True, modify_key = True):
 
 def select_random_ending(story_embeddings):
     """ Select a random ending for each sentence
-           Parameters:
-           -----------
-           story_embeddings: dictionary
-           dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end]}
+    Parameters:
+    -----------
+    story_embeddings: dictionary
+    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end]}
 
-           Returns:
-           --------
-           random_ending_embeddings: dictionary
-           dictionary with random endings
+    Returns:
+    --------
+    random_ending_embeddings: dictionary
+    dictionary with random endings
 
-           labels: dictionary
-           dictionary of labels
-
+    labels: dictionary
+    dictionary of labels
     """
     random_ending_embeddings = {}
     labels = {}
@@ -233,27 +231,27 @@ def select_random_ending(story_embeddings):
 
 def convert_training_dictionaries_to_lists(beginning_of_story_embeddings, ending_embeddings, labels):
     """ Convert dictionaries to list
-           Parameters:
-           -----------
-           beginning_of_story_embeddings: dictionary
-           dictionary of embeddings {key: value}
+    Parameters:
+    -----------
+    beginning_of_story_embeddings: dictionary
+    dictionary of embeddings {key: value}
 
-           ending_embeddings: dictionary
-           dictionary of embeddings {key: value}
+    ending_embeddings: dictionary
+    dictionary of embeddings {key: value}
 
-           labels: dictionary
-           dictionary of labels {key: value}
+    labels: dictionary
+    dictionary of labels {key: value}
 
-           Returns:
-           --------
-           beginning_of_story_embeddings_list: list
-           list of embeddings
+    Returns:
+    --------
+    beginning_of_story_embeddings_list: list
+    list of embeddings
 
-           ending_embeddings_list: list
-           list of embeddings
+    ending_embeddings_list: list
+    list of embeddings
 
-           labels_list: list
-           list of embeddings
+    labels_list: list
+    list of embeddings
 
     """
     beginning_of_story_embeddings_list = []
@@ -268,40 +266,39 @@ def convert_training_dictionaries_to_lists(beginning_of_story_embeddings, ending
 
 def convert_test_dictionaries_to_lists(beginning_of_story_embeddings, right_ending_embeddings, wrong_ending_embeddings, right_labels, wrong_labels):
     """ Convert dictionaries to list
-           Parameters:
-           -----------
-           beginning_of_story_embeddings: dictionary
-           dictionary of embeddings {key: value}
+     Parameters:
+     -----------
+     beginning_of_story_embeddings: dictionary
+     dictionary of embeddings {key: value}
 
-           right_ending_embeddings: dictionary
-           dictionary of embeddings {key: value}
+     right_ending_embeddings: dictionary
+     dictionary of embeddings {key: value}
 
-           wrong_ending_embeddings: dictionary
-           dictionary of embeddings {key: value}
+     wrong_ending_embeddings: dictionary
+     dictionary of embeddings {key: value}
 
-           right_labels: dictionary
-           dictionary of labels {key: value}
+     right_labels: dictionary
+     dictionary of labels {key: value}
 
-           wrong_labels: dictionary
-           dictionary of labels {key: value}
+     wrong_labels: dictionary
+     dictionary of labels {key: value}
 
-           Returns:
-           --------
-           beginning_of_story_embeddings_list: list
-           list of embeddings
+     Returns:
+     --------
+     beginning_of_story_embeddings_list: list
+     list of embeddings
 
-           right_ending_embeddings_list: list
-           list of embeddings
+     right_ending_embeddings_list: list
+     list of embeddings
 
-           wrong_ending_embeddings_list: list
-           list of embeddings
+     wrong_ending_embeddings_list: list
+     list of embeddings
 
-           right_labels_list: list
-           list of labels
+     right_labels_list: list
+     list of labels
 
-           wrong_labels_list: list
-           list of labels
-
+     wrong_labels_list: list
+     list of labels
     """
     beginning_of_story_embeddings_list = []
     right_ending_embeddings_list = []
@@ -320,33 +317,35 @@ def convert_test_dictionaries_to_lists(beginning_of_story_embeddings, right_endi
 
 
 def generate_training_data(story_embeddings, story_type, generate_radom_ending = True):
-    """ Generate data: embeddings for the beginning of sentence, for the end of sentence and the associated labels [1 for right/ 0 for wrong]
-           Parameters:
-           -----------
-           story_embeddings: dictionary
-           dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
+    """ Generate training data: embeddings for the beginning of sentence, for the end of sentence and the associated labels [1 for right/ 0 for wrong]
+    Parameters:
+    -----------
+    story_embeddings: dictionary
+    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
 
-           story_type: string
-           (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
+    story_type: string
+    (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
 
-           generate_radom_ending: bool
-           if set, it is used to generate a random ending. Useful for datasets where's no wrong ending. The dataset is
-           Returns:
-           --------
-           random_ending_embeddings: dictionary
-           dictionary with random endings
+    generate_radom_ending: bool
+    if set, it is used to generate a random ending. Useful for datasets where's no wrong ending. The dataset is
+    Returns:
+    --------
+    beginning_of_story_embeddings: dictionary
+    dictionary with the embeddings for the beginning of story
 
-           labels: dictionary
-           dictionary of labels
+    ending_embeddings: dictionary
+    dictionary with the embeddings for the ending of story
 
+    labels: dictionary
+    dictionary of labels
     """
+    is_right_ending = False  # negative sampling
     beginning_of_story_embeddings = select_embeddings_for_model(story_embeddings, story_type)  # positive sampling
     beginning_of_story_embeddings.update(select_embeddings_for_model(story_embeddings, story_type, False)) # negative sampling
     ending_embeddings, labels = select_endings(story_embeddings) # positive sampling
     if generate_radom_ending:
         temp_ending_embeddings, temp_labels = select_random_ending(story_embeddings)
     else:
-        is_right_ending = False # negative sampling
         temp_ending_embeddings, temp_labels = select_ending(story_embeddings, is_right_ending)
 
     ending_embeddings.update(temp_ending_embeddings)
@@ -355,35 +354,67 @@ def generate_training_data(story_embeddings, story_type, generate_radom_ending =
 
     return beginning_of_story_embeddings,  ending_embeddings, labels
 
+def generate_validation_data(story_embeddings, story_type):
+    """ Generate validation data: embeddings for the beginning of sentence, for the end of sentence and the associated labels [1 for right/ 0 for wrong]
+    Parameters:
+    -----------
+    story_embeddings: dictionary
+    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
+
+    story_type: string
+    (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
+
+    Returns:
+    --------
+    beginning_of_story_embeddings: dictionary
+    dictionary with the embeddings for the beginning of story
+
+    ending_embeddings: dictionary
+    dictionary with the embeddings for the ending of story
+
+    labels: dictionary
+    dictionary of labels
+    """
+    is_right_ending = False  # negative sampling
+    modify_key = True
+    beginning_of_story_embeddings = select_embeddings_for_model(story_embeddings, story_type)  # positive sampling
+    ending_embeddings, labels = select_endings(story_embeddings)  # positive sampling
+    temp_ending_embeddings, temp_labels = select_endings(story_embeddings, is_right_ending, modify_key) # negative sampling
+    beginning_of_story_embeddings.update(temp_ending_embeddings)
+    labels.update(temp_labels)
+
+    beginning_of_story_embeddings, ending_embeddings, labels = convert_training_dictionaries_to_lists(
+        beginning_of_story_embeddings, ending_embeddings, labels)
+
+    return beginning_of_story_embeddings, ending_embeddings, labels
+
 
 def generate_test_data(story_embeddings, story_type):
     """ Generate data: embeddings for the beginning of sentence, for the end of sentence and the associated labels [1 for right/ 0 for wrong]
-           Parameters:
-           -----------
-           story_embeddings: dictionary
-           dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
+    Parameters:
+    -----------
+    story_embeddings: dictionary
+    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
 
-           story_type: string
-           (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
+    story_type: string
+    (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
 
-           Returns:
-           --------
-           beginning_of_story_embeddings: list
-           list of embeddings
+    Returns:
+    --------
+    beginning_of_story_embeddings: list
+    list of embeddings
 
-           right_ending_embeddings: list
-           list of embeddings
+    right_ending_embeddings: list
+    list of embeddings
 
-           wrong_ending_embeddings: list
-           list of embeddings
+    wrong_ending_embeddings: list
+    list of embeddings
 
-           right_labels: list
-           list of labels
+    right_labels: list
+    list of labels
 
-           wrong_labels: list
-           list of labels
-
-
+    wrong_labels: list
+    list of labels
     """
     is_right_ending = False # negative sampling
     modify_key = False
@@ -401,6 +432,28 @@ def generate_test_data(story_embeddings, story_type):
     )
 
     return beginning_of_story_embeddings, right_ending_embeddings, wrong_ending_embeddings, right_labels, wrong_labels
+
+
+def filter_data_based_on_ids(story_embeddings, story_ids):
+    """ Filter data based on a list of ids
+    Parameters:
+    -----------
+    story_embeddings: dictionary
+    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
+
+    story_ids: list
+    list of ids used to select the embeddings
+
+    Returns:
+    --------
+    selected_story_ids: dictionary
+    dictionary with random endings
+    """
+    selected_story_ids = {}
+    for id in story_ids:
+        selected_story_ids[id] = story_embeddings[id]
+
+    return selected_story_ids
 
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
@@ -421,6 +474,74 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             start_index = batch_num * batch_size
             end_index = min((batch_num + 1) * batch_size, data_size)
             yield shuffled_data[start_index:end_index]
+
+def write_list_to_file(list_to_write, file_name):
+    file = open(file_name, "w")
+    for item in list_to_write:
+        file.write("%s\n" % item)
+
+    file.close()
+
+def split_data_for_validation_and_testing(input_file, validation_ids_output_file, test_ids_output_file, val_sample_percentage):
+    """ Split the data for validation and testing
+    Parameters:
+    -----------
+    input_file: string
+    csv file containing the data
+
+    validation_ids_output_file: string
+    file to write the ids that will be used for validating the model
+
+    test_ids_output_file: string
+    file to write the ids that will be used for testing the model
+
+    val_sample_percentage: float
+    percentage used to split the data
+    """
+    ids = []
+    first_line = True
+    with open(input_file) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if first_line:
+                first_line = False
+            else:
+                ids.append(row[0])
+
+    val_sample_index = -1 * int(val_sample_percentage * float(len(ids)))
+    ids_list = list(ids)
+    random.shuffle(ids_list)
+
+    test_ids = ids_list[:val_sample_index]
+    validation_ids = ids_list[val_sample_index:]
+
+    write_list_to_file(validation_ids, validation_ids_output_file)
+    write_list_to_file(test_ids, test_ids_output_file)
+
+def shuffle_data(a, b, c):
+    """ Shuffle data
+    Parameters:
+    -----------
+    a: list
+
+    b: list
+
+    c: list
+
+    Returns:
+    Shuffled data
+    """
+    data = list(zip(a,b,c))
+    random.shuffle(data)
+    a, b, c = zip(*data)
+
+    return a, b, c
+
+
+
+
+
+
 
 
 
