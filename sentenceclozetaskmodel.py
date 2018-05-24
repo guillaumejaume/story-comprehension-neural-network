@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-class Model:
+class SentenceClozeTaskModel:
     """
     Simple model with 3 fc hidden layers
 
@@ -35,7 +35,7 @@ class Model:
                 dense_3 = tf.layers.dense(inputs=dense_2, units=600, activation=tf.nn.relu)
 
                 self.logits = tf.layers.dense(inputs=dense_3, units=2)
-                self.probabilities = tf.nn.softmax(self.logits)
+                self.probabilities = tf.nn.softmax(self.logits, name = 'probabilities')
 
             with tf.variable_scope("loss"):
                 print('labels: ', self.labels.shape)
