@@ -17,10 +17,11 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
        embeddings_id_output_file: string
        path to the file to save the embeddings id in
     """
-    list_of_stories = utils.load_and_process_text_data(input_file)
+    list_of_stories = utils.load_and_process_text_data(input_file, for_testing)
     model = skipthoughts.load_model()
     encoder = skipthoughts.Encoder(model)
 
+    print("len(list_of_stories) ",len(list_of_stories))
     fout_id = open(embeddings_id_output_file, "wb")
     for story in list_of_stories:
         if not for_testing:
@@ -32,6 +33,7 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
             b = bytes()
             b = b.join((struct.pack('f', e) for e in embed))
             output_file.write(b)
+        print(story.id)
         output_file.close()
         fout_id.write(story.id)
         fout_id.write("\n")
@@ -39,4 +41,4 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
 
 
 #generate_and_save_word_embeddings_for_sentences_text("./data/train_stories.csv","./data/embeddings/", "./data/embeddings/id.txt")
-generate_and_save_word_embeddings_for_sentences_text("./data/cloze_test_val__spring2016 - cloze_test_ALL_val.csv","./data/embeddings_test/", "./data/embeddings_test/id.txt", True)
+generate_and_save_word_embeddings_for_sentences_text("./data/test_validation.csv","./data/embeddings_test/", "./data/embeddings_test/id.txt", True)
