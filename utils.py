@@ -258,6 +258,7 @@ def convert_training_dictionaries_to_lists(beginning_of_story_embeddings, ending
     ending_embeddings_list = []
     labels_list = []
     for i, key in enumerate(beginning_of_story_embeddings):
+        print(i, key)
         beginning_of_story_embeddings_list.append(beginning_of_story_embeddings[key])
         ending_embeddings_list.append(ending_embeddings[key])
         labels_list.append(labels[key])
@@ -380,7 +381,7 @@ def generate_validation_data(story_embeddings, story_type):
     beginning_of_story_embeddings = select_embeddings_for_model(story_embeddings, story_type)  # positive sampling
     ending_embeddings, labels = select_endings(story_embeddings)  # positive sampling
     temp_ending_embeddings, temp_labels = select_endings(story_embeddings, is_right_ending, modify_key) # negative sampling
-    beginning_of_story_embeddings.update(temp_ending_embeddings)
+    ending_embeddings.update(temp_ending_embeddings)
     labels.update(temp_labels)
 
     beginning_of_story_embeddings, ending_embeddings, labels = convert_training_dictionaries_to_lists(
