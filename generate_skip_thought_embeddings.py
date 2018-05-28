@@ -41,4 +41,4 @@ def generate_and_save_word_embeddings_for_sentences_text(input_file, embeddings_
 
 
 #generate_and_save_word_embeddings_for_sentences_text("./data/train_stories.csv","./data/embeddings/", "./data/embeddings/id.txt")
-generate_and_save_word_embeddings_for_sentences_text("./data/test_validation.csv","./data/embeddings_test/", "./data/embeddings_test/id.txt", True)
+generate_and_save_word_embeddings_for_sentences_text("./data/validation.csv","./data/embeddings_test/", "./data/embeddings_test/id.txt", True)
