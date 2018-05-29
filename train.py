@@ -1,30 +1,37 @@
 import utils
 
-from model import Model
+from sentenceclozetaskmodel import SentenceClozeTaskModel
 
 import tensorflow as tf
 import os
 import time
 import datetime
-
+import random
 import numpy as np
 
 #Training parameters
-
+#/data/validation_ids_big_small.txt
 # Data loading parameters
-tf.flags.DEFINE_float("val_sample_percentage", .001, "Percentage of the training data used for validation")
-tf.flags.DEFINE_string("data_file_path", "data/sentences.train", "Path to the training data")
-tf.flags.DEFINE_string("vocab_with_emb_path", "data/vocab_with_emb.txt", "Path to the vocabulary list")
+tf.flags.DEFINE_string("path_to_training_embeddings", "./data/embeddings/", "Path to the embeddings used for training")
+tf.flags.DEFINE_string("path_to_validation_embeddings", "./data/embeddings_validation/", "Path to the embeddings used for validation")
+tf.flags.DEFINE_string("path_to_training_ids_no_neg_sampling", "./train_ids.txt",
+                       "Path to the file with the sentences' ids used for training without negative sampling")
+tf.flags.DEFINE_string("path_to_training_ids_neg_sampling", "./val_ids_big.txt", "Path to the file with the sentences' ids used for training with negative sampling")
+tf.flags.DEFINE_string("path_to_validation_ids", "./val_ids_small.txt", "Path to the file with the sentences' ids used for validation")
+tf.flags.DEFINE_string("story_type", "last_sentence", "Story type: {no_context, last_sentence, plot (first 4 sentences), full (4 sentences + ending)}")
+tf.flags.DEFINE_string("num_embed_per_story_for_training_no_neg_sampling", 5, "The number of sentences in a story.")
+tf.flags.DEFINE_string("num_embed_per_story_for_training_neg_sampling", 6, "The number of sentences in a story.")
+tf.flags.DEFINE_string("num_embeddings_per_story_for_validation", 6, "The number of sentences in a story.")
+tf.flags.DEFINE_string("embeddings_dim", 4800, "The dimension of the embeddings")
+tf.flags.DEFINE_string("generate_random_ending_for_training", False , "Generate random ending for the dataset that lacks it (eg. training dataset)")
+tf.flags.DEFINE_string("generate_random_ending_for_validation", False , "Generate random ending for the dataset that lacks it (eg. training dataset)")
+tf.flags.DEFINE_string("negative_sampling", True, "Do negative sampling for the training dataset that doesn't have the wrong endings, but only the positive ones.")
+tf.flags.DEFINE_string("combine_training_validation_datasets", True, "Sample from training and validation datasets. Training = training dataset + x% val dataset. "
+                                                                      "Validation = (1-x)% validation dataset")
 
 # Model parameters
-tf.flags.DEFINE_integer("embedding_dimension", 100, "Dimensionality of word embeddings")
-tf.flags.DEFINE_integer("vocabulary_size", 20000, "Size of the vocabulary")
-tf.flags.DEFINE_integer("state_size", 512, "Size of the hidden LSTM state")
-tf.flags.DEFINE_integer("sentence_length", 30, "Length of each sentence fed to the LSTM")
 
 # Embedding parameters
-tf.flags.DEFINE_boolean("use_word2vec_emb", True, "Use word2vec embedding")
-tf.flags.DEFINE_string("path_to_word2vec", "wordembeddings-dim100.word2vec", "Path to the embedding file")
 
 # Training parameters
 tf.flags.DEFINE_integer("max_grad_norm", 5, "max norm of the gradient")
@@ -49,38 +56,86 @@ tf.flags.DEFINE_integer("intra_op_parallelism_threads", 0,
 FLAGS = tf.flags.FLAGS
 
 # Prepare the data
-print("Load vocabulary list \n")
-vocab = []
-generated_embeddings = []
+print("Load embeddings for training and validation \n")
+train_story_embeddings_no_neg_sampling = utils.load_embeddings(
+    FLAGS.path_to_training_embeddings,
+    FLAGS.path_to_training_ids_no_neg_sampling,
+    FLAGS.num_embed_per_story_for_training_no_neg_sampling,
+    FLAGS.embeddings_dim)
+
+if FLAGS.combine_training_validation_datasets:
+    train_story_embeddings_neg_sampling = utils.load_embeddings(
+        FLAGS.path_to_validation_embeddings,
+        FLAGS.path_to_training_ids_neg_sampling,
+        FLAGS.num_embed_per_story_for_training_neg_sampling,
+        FLAGS.embeddings_dim)
+
+validation_story_embeddings = utils.load_embeddings(
+    FLAGS.path_to_validation_embeddings,
+    FLAGS.path_to_validation_ids,
+    FLAGS.num_embeddings_per_story_for_validation,
+    FLAGS.embeddings_dim)
 
 print("Loading and preprocessing training and validation datasets \n")
-data = []
-labels = []
+print("generate training data - training no neg sampling")
 
-# Randomly shuffle data
-np.random.seed(10)
-shuffled_indices = np.random.permutation(len(labels))
-data = data[shuffled_indices]
-labels = labels[shuffled_indices]
+#generate training data based from the training dataset that contains 88k stories with no wrong answer.
+#Things to take into account:
+# generate_radom_ending and do_negative_sampling
+beginning_of_story_embeddings, ending_embeddings, labels = utils.generate_training_data(
+    train_story_embeddings_no_neg_sampling,
+    FLAGS.story_type)
+print("beginning_of_story_embeddings.size", len(beginning_of_story_embeddings))
 
-# Split train/dev sets
-val_sample_index = -1 * int(FLAGS.val_sample_percentage * float(len(labels)))
-x_train, x_val = data[:val_sample_index], data[val_sample_index:]
-y_train, y_val = labels[:val_sample_index], labels[val_sample_index:]
+train_story_embeddings_no_neg_sampling = []
+if FLAGS.combine_training_validation_datasets:
+    temp_beginning_of_story_embeddings, temp_ending_embeddings, temp_labels = utils.generate_training_data(
+        train_story_embeddings_neg_sampling,
+        FLAGS.story_type,
+        FLAGS.generate_random_ending_for_training)
+    train_story_embeddings_neg_sampling = []
+
+    beginning_of_story_embeddings.extend(temp_beginning_of_story_embeddings)
+    ending_embeddings.extend(temp_ending_embeddings)
+    labels.extend(temp_labels)
+
+    temp_beginning_of_story_embeddings = []
+    temp_ending_embeddings = []
+    temp_labels = []
+#utils.generate_validation_data(validation_story_embeddings, FLAGS.story_type)
+beginning_of_story_embeddings_val,  ending_embeddings_val, labels_val =  utils.generate_training_data(
+    validation_story_embeddings,
+    FLAGS.story_type,
+    FLAGS.generate_random_ending_for_validation)
+validation_story_embeddings = []
+
+# Randomly shuffle training and validation data
+x_beginning_train, x_ending_train, y_train = utils.shuffle_data(beginning_of_story_embeddings, ending_embeddings, labels)
+x_beginning_val, x_ending_val, y_val = utils.shuffle_data(beginning_of_story_embeddings_val, ending_embeddings_val, labels_val)
+
+
+beginning_of_story_embeddings  = []
+ending_embeddings  = []
+labels  = []
 
 # Summary of the loaded data
-print('Loaded: ', len(x_train), ' samples for training')
-print('Loaded: ', len(x_val), ' samples for validation')
+print('Loaded: ', len(x_beginning_train), ' samples for training')
+print('Loaded: ', len(x_beginning_val), ' samples for validation')
 
-print('Training input has shape: ', np.shape(x_train))
-print('Validation input has shape: ', np.shape(x_val))
+print('Training input1 has shape: ', np.shape(x_beginning_train))
+print('Validation input1 has shape: ', np.shape(x_beginning_val))
+
+print('Training input2 has shape: ', np.shape(x_ending_train))
+print('Validation input2 has shape: ', np.shape(x_ending_val))
 
 print('Training labels has shape: ', np.shape(y_train))
 print('Validation labels has shape: ', np.shape(y_val))
 
 # Generate training batches
-batches = utils.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
-
+batches = utils.batch_iter(list(zip(x_beginning_train, x_ending_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+x_beginning_train = []
+x_ending_train = []
+y_train = []
 print("Loading and preprocessing done \n")
 
 # Define the model and start training
@@ -93,21 +148,21 @@ with tf.Graph().as_default():
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         # Initialize model
-        model = Model()
+        model = SentenceClozeTaskModel()
 
         # Training step
         global_step = tf.Variable(0, name="global_step", trainable=False)
         # Define Adam optimizer
         learning_rate = 0.0002
         optimizer = tf.train.AdamOptimizer(learning_rate)
-        train_op = optimizer.minimize()
+        train_op = optimizer.minimize(model.loss, global_step=global_step)
 
         # Output directory for models and summaries
         timestamp = str(int(time.time()))
         out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
         print("Writing to {}\n".format(out_dir))
 
-        # Summaries for loss, perplexity and accuracy
+        # Summaries for loss and accuracy
         loss_summary = tf.summary.scalar("loss", model.loss)
         acc_summary = tf.summary.scalar("accuracy", model.accuracy)
 
@@ -133,54 +188,61 @@ with tf.Graph().as_default():
         sess.graph.finalize()
 
         # Define training and validation steps (batch)
-        def train_step(inputs, labels, vocab_emb):
+        def train_step(inputs_beginning, inputs_ending, labels):
             """
             A single training step
             """
             feed_dict = {
-                model.inputs: inputs,
+                model.inputs_beginning: inputs_beginning,
+                model.inputs_ending: inputs_ending,
                 model.labels: labels,
-                model.vocab_embedding: vocab_emb,
-                model.discard_last_prediction: True
             }
-            _, step, summaries, loss, perplexity, accuracy = sess.run([train_op,
-                                                                       global_step,
-                                                                       train_summary_op,
-                                                                       model.loss,
-                                                                       model.accuracy], feed_dict)
+            _, step, summaries, loss, accuracy = sess.run([
+                    train_op,
+                    global_step,
+                    train_summary_op,
+                    model.loss,
+                    model.accuracy
+                ],
+                feed_dict
+            )
             time_str = datetime.datetime.now().isoformat()
             print('\n\n')
-            print("{}: step {}, perplexity {:g}, acc {:g}".format(time_str, step, perplexity, accuracy))
+            print("{}: step {}, acc {:g}".format(time_str, step, accuracy))
             train_summary_writer.add_summary(summaries, step)
 
-        def dev_step(inputs, labels, vocab_emb, writer=None):
+        def dev_step(inputs_beginning, inputs_ending, labels, writer=None):
             """
             Evaluates model on the validation set
             """
             feed_dict = {
-                model.inputs: inputs,
+                model.inputs_beginning: inputs_beginning,
+                model.inputs_ending: inputs_ending,
                 model.labels: labels,
-                model.vocab_embedding: vocab_emb,
-                model.discard_last_prediction: True
             }
-            step, summaries, predictions, perplexity, accuracy = sess.run([global_step,
-                                                                           val_summary_op,
-                                                                           model.predictions,
-                                                                           model.accuracy], feed_dict)
+            step, summaries, predictions, accuracy = sess.run([
+                    global_step,
+                    val_summary_op,
+                    model.predictions,
+                    model.accuracy
+                ],
+                feed_dict
+            )
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, perplexity {:g}, acc {:g}".format(time_str, step, perplexity, accuracy))
+            print("{}: step {}, acc {:g}".format(time_str, step, accuracy))
             print('Predictions: ', predictions)
             if writer:
                 writer.add_summary(summaries, step)
 
         # TRAINING LOOP
         for batch in batches:
-            x_batch, y_batch = zip(*batch)
-            train_step(x_batch, y_batch, vocab_emb)
+            x_beginning_batch, x_ending_batch, y_batch = zip(*batch)
+            train_step(x_beginning_batch, x_ending_batch, y_batch)
             current_step = tf.train.global_step(sess, global_step)
+            print("current_step ", current_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                dev_step(x_val, y_val, vocab_emb, writer=val_summary_writer)
+                dev_step(x_beginning_val, x_ending_val, y_val, writer=val_summary_writer)
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
