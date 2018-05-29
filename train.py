@@ -14,18 +14,18 @@ import numpy as np
 # Data loading parameters
 tf.flags.DEFINE_string("path_to_training_embeddings", "./data/embeddings/", "Path to the embeddings used for training")
 tf.flags.DEFINE_string("path_to_validation_embeddings", "./data/embeddings_validation/", "Path to the embeddings used for validation")
-tf.flags.DEFINE_string("path_to_training_ids_no_neg_sampling", "./data/embeddings/id.txt",
+tf.flags.DEFINE_string("path_to_training_ids_no_neg_sampling", "./train_ids.txt",
                        "Path to the file with the sentences' ids used for training without negative sampling")
-tf.flags.DEFINE_string("path_to_training_ids_neg_sampling", "./data/validation_ids_big.txt", "Path to the file with the sentences' ids used for training with negative sampling")
-tf.flags.DEFINE_string("path_to_validation_ids", "./validation_ids.txt", "Path to the file with the sentences' ids used for validation")
+tf.flags.DEFINE_string("path_to_training_ids_neg_sampling", "./val_ids_big.txt", "Path to the file with the sentences' ids used for training with negative sampling")
+tf.flags.DEFINE_string("path_to_validation_ids", "./val_ids_small.txt", "Path to the file with the sentences' ids used for validation")
 tf.flags.DEFINE_string("story_type", "last_sentence", "Story type: {no_context, last_sentence, plot (first 4 sentences), full (4 sentences + ending)}")
 tf.flags.DEFINE_string("num_embed_per_story_for_training_no_neg_sampling", 5, "The number of sentences in a story.")
 tf.flags.DEFINE_string("num_embed_per_story_for_training_neg_sampling", 6, "The number of sentences in a story.")
 tf.flags.DEFINE_string("num_embeddings_per_story_for_validation", 6, "The number of sentences in a story.")
 tf.flags.DEFINE_string("embeddings_dim", 4800, "The dimension of the embeddings")
-tf.flags.DEFINE_string("generate_random_ending", True, "Generate random ending for the dataset that lacks it (eg. training dataset)")
+tf.flags.DEFINE_string("generate_random_ending_for_training", False , "Generate random ending for the dataset that lacks it (eg. training dataset)")
+tf.flags.DEFINE_string("generate_random_ending_for_validation", False , "Generate random ending for the dataset that lacks it (eg. training dataset)")
 tf.flags.DEFINE_string("negative_sampling", True, "Do negative sampling for the training dataset that doesn't have the wrong endings, but only the positive ones.")
-
 tf.flags.DEFINE_string("combine_training_validation_datasets", True, "Sample from training and validation datasets. Training = training dataset + x% val dataset. "
                                                                       "Validation = (1-x)% validation dataset")
 
@@ -77,48 +77,47 @@ validation_story_embeddings = utils.load_embeddings(
     FLAGS.embeddings_dim)
 
 print("Loading and preprocessing training and validation datasets \n")
-beginning_of_story_embeddings, ending_embeddings, labels = utils.generate_training_data( #2
-    train_story_embeddings_no_neg_sampling,
-    FLAGS.story_type,
-    FLAGS.generate_random_ending,
-    FLAGS.negative_sampling #comment it if combine_training_validation_datasets=True
-    )
+print("generate training data - training no neg sampling")
 
-#train_story_embeddings_no_neg_sampling = []
+#generate training data based from the training dataset that contains 88k stories with no wrong answer.
+#Things to take into account:
+# generate_radom_ending and do_negative_sampling
+beginning_of_story_embeddings, ending_embeddings, labels = utils.generate_training_data(
+    train_story_embeddings_no_neg_sampling,
+    FLAGS.story_type)
+print("beginning_of_story_embeddings.size", len(beginning_of_story_embeddings))
+
+train_story_embeddings_no_neg_sampling = []
 if FLAGS.combine_training_validation_datasets:
     temp_beginning_of_story_embeddings, temp_ending_embeddings, temp_labels = utils.generate_training_data(
         train_story_embeddings_neg_sampling,
         FLAGS.story_type,
-        FLAGS.generate_random_ending)
-
-   # train_story_embeddings_neg_sampling = []
+        FLAGS.generate_random_ending_for_training)
+    train_story_embeddings_neg_sampling = []
 
     beginning_of_story_embeddings.extend(temp_beginning_of_story_embeddings)
     ending_embeddings.extend(temp_ending_embeddings)
     labels.extend(temp_labels)
 
-   # temp_beginning_of_story_embeddings = []
-   # temp_ending_embeddings = []
-    #temp_labels = []
+    temp_beginning_of_story_embeddings = []
+    temp_ending_embeddings = []
+    temp_labels = []
 #utils.generate_validation_data(validation_story_embeddings, FLAGS.story_type)
 beginning_of_story_embeddings_val,  ending_embeddings_val, labels_val =  utils.generate_training_data(
     validation_story_embeddings,
     FLAGS.story_type,
-    FLAGS.generate_random_ending)
-#validation_story_embeddings = []
+    FLAGS.generate_random_ending_for_validation)
+validation_story_embeddings = []
 
 # Randomly shuffle training and validation data
 x_beginning_train, x_ending_train, y_train = utils.shuffle_data(beginning_of_story_embeddings, ending_embeddings, labels)
 x_beginning_val, x_ending_val, y_val = utils.shuffle_data(beginning_of_story_embeddings_val, ending_embeddings_val, labels_val)
 
-""" 
+
 beginning_of_story_embeddings  = []
 ending_embeddings  = []
 labels  = []
-beginning_of_story_embeddings_val  = []
-ending_embeddings_val  = []
-labels_val  = []
-"""
+
 # Summary of the loaded data
 print('Loaded: ', len(x_beginning_train), ' samples for training')
 print('Loaded: ', len(x_beginning_val), ' samples for validation')
@@ -134,7 +133,9 @@ print('Validation labels has shape: ', np.shape(y_val))
 
 # Generate training batches
 batches = utils.batch_iter(list(zip(x_beginning_train, x_ending_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
-
+x_beginning_train = []
+x_ending_train = []
+y_train = []
 print("Loading and preprocessing done \n")
 
 # Define the model and start training

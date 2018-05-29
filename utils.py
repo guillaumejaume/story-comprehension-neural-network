@@ -171,12 +171,15 @@ def select_embeddings_for_model(embeddings, model_type, has_right_ending = True,
     return embeddings_slice
 
 
-def select_endings(embeddings, is_right_ending = True, modify_key = True):
+def select_endings(embeddings, has_right_ending = True, modify_key = True):
     """ Select ending embeddings for a specific sentence/group of sentences
     Parameters:
     -----------
     embeddings: dictionary
     dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end (, emb_end2)]}
+
+    has_right_ending: bool
+    control whether the function is using the right ending or the wrong ending
 
     modify_key: bool
     used to modify the key if wrong ending
@@ -192,7 +195,7 @@ def select_endings(embeddings, is_right_ending = True, modify_key = True):
     labels = {}
 
     for key, value in embeddings.items():
-        if is_right_ending:
+        if has_right_ending:
             ending_embeddings[key] = value[4]
             labels[key] = 1
         else:
@@ -327,6 +330,9 @@ def generate_training_data(story_embeddings, story_type, generate_radom_ending =
 
     generate_radom_ending: bool
     if set, it is used to generate a random ending. Useful for datasets where's no wrong ending.
+
+    do_negative_sampling: bool
+    generate negative sampling
     Returns:
     --------
     beginning_of_story_embeddings: dictionary
@@ -341,24 +347,18 @@ def generate_training_data(story_embeddings, story_type, generate_radom_ending =
     beginning_of_story_embeddings = select_embeddings_for_model(story_embeddings, story_type)  # positive sampling
     ending_embeddings, labels = select_endings(story_embeddings)  # positive sampling
 
+    print("generate_training_data")
     if do_negative_sampling:
+        print("negative sampling")
         beginning_of_story_embeddings.update(select_embeddings_for_model(story_embeddings, story_type, has_right_ending = False)) # negative sampling
         if generate_radom_ending:
+            print("generate random embeddings")
             temp_ending_embeddings, temp_labels = select_random_ending(story_embeddings)
         else:
+            print("don't generate random embeddings")
             temp_ending_embeddings, temp_labels = select_endings(story_embeddings, has_right_ending = False)
         ending_embeddings.update(temp_ending_embeddings)
         labels.update(temp_labels)
-
-
-    for i, key in enumerate(beginning_of_story_embeddings):
-        print("beginning_of_story_embeddings", i, key)
-
-    for i, key in enumerate(ending_embeddings):
-        print("ending_embeddings", i, key)
-
-    for i, key in enumerate(labels):
-        print("labels", i, key)
 
     beginning_of_story_embeddings, ending_embeddings, labels = convert_training_dictionaries_to_lists(beginning_of_story_embeddings, ending_embeddings, labels)
 
