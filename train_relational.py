@@ -50,14 +50,19 @@ val_stories, val_true_endings, val_wrong_endings = utils.generate_data(all_valid
                                                                        generate_random_ending=False)
 
 # rebalance val and training
-val_sample_index = int(FLAGS.percentage_of_val * float(len(val_stories)))
-extra_training_stories, val_stories = val_stories[:val_sample_index], val_stories[val_sample_index:]
-extra_training_true, val_true_endings = val_true_endings[:val_sample_index], val_true_endings[val_sample_index:]
-extra_training_wrong, val_wrong_endings = val_wrong_endings[:val_sample_index], val_wrong_endings[val_sample_index:]
+# val_sample_index = int(FLAGS.percentage_of_val * float(len(val_stories)))
+# extra_training_stories, val_stories = val_stories[:val_sample_index], val_stories[val_sample_index:]
+# extra_training_true, val_true_endings = val_true_endings[:val_sample_index], val_true_endings[val_sample_index:]
+# extra_training_wrong, val_wrong_endings = val_wrong_endings[:val_sample_index], val_wrong_endings[val_sample_index:]
+#
+# training_stories = np.concatenate((training_stories, extra_training_stories))
+# training_true_endings = np.concatenate((training_true_endings, extra_training_true))
+# training_wrong_endings = np.concatenate((training_wrong_endings, extra_training_wrong))
 
-training_stories = np.concatenate((training_stories, extra_training_stories))
-training_true_endings = np.concatenate((training_true_endings, extra_training_true))
-training_wrong_endings = np.concatenate((training_wrong_endings, extra_training_wrong))
+train_sample_index = int(0.99 * float(len(training_stories)))
+training_stories, val_stories = training_stories[:train_sample_index], training_stories[train_sample_index:]
+training_true_endings, val_true_endings = training_true_endings[:train_sample_index], training_true_endings[train_sample_index:]
+training_wrong_endings, val_wrong_endings = training_wrong_endings[:train_sample_index], training_wrong_endings[train_sample_index:]
 
 # summary
 print('# of training stories: ', len(training_stories), ' with shape: ', np.shape(training_stories))
