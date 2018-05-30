@@ -6,6 +6,8 @@ import codecs
 import random
 from random import randint
 
+import scipy
+
 from story import Story
 
 
@@ -415,12 +417,30 @@ def generate_data(all_embeddings, generate_random_ending=True):
         if generate_random_ending:
             all_keys = list(all_embeddings.keys())
             all_keys.remove(key)
-            wrong_ending = all_embeddings[random.choice(all_keys)][4]  # wrong ending
+            closest_key = find_closest_ending(key, all_keys, all_embeddings)
+            wrong_ending = all_embeddings[closest_key][4]
+            # wrong_ending = all_embeddings[random.choice(all_keys)][4]  # wrong ending
+            print('current key: ', key)
+            print('closest key: ', closest_key)
+            print('\n')
         else:
             wrong_ending = val[5]
         wrong_endings.append(wrong_ending)
 
     return np.asarray(stories), np.asarray(true_endings), np.asarray(wrong_endings)
+
+
+def find_closest_ending(current_key, all_keys, all_embeddings):
+    current_emb = all_embeddings[current_key]
+
+    min_dist = 1
+    min_key = ''
+    for key in all_keys:
+        dist = scipy.spatial.distance.cosine(current_emb[4], all_embeddings[key][4])
+        if dist < min_dist:
+            min_dist = dist
+            min_key = key
+    return min_key
 
 
 def generate_validation_data(story_embeddings, story_type):
