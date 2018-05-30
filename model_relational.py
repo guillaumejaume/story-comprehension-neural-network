@@ -36,16 +36,19 @@ class RelationalModel:
         with tf.device('/gpu:0'):
             with tf.variable_scope("story_embedding"):
 
-                self.sentence_weights = tf.get_variable("sentence_weights",
-                                                        shape=[4, 1],
-                                                        dtype=tf.float32,
-                                                        initializer=tf.contrib.layers.xavier_initializer())
+                # self.sentence_weights = tf.get_variable("sentence_weights",
+                #                                         shape=[4, 1],
+                #                                         dtype=tf.float32,
+                #                                         initializer=tf.contrib.layers.xavier_initializer())
+                #
+                # stories = tf.reshape(self.stories, shape=(-1, 4))
+                #
+                # # dim = [batch_size x emd_dim]
+                # self.embedded_story = tf.matmul(stories, self.sentence_weights)
+                # self.embedded_story = tf.reshape(self.embedded_story, shape=(-1, embed_size))
 
-                stories = tf.reshape(self.stories, shape=(-1, 4))
-
-                # dim = [batch_size x emd_dim]
-                self.embedded_story = tf.matmul(stories, self.sentence_weights)
-                self.embedded_story = tf.reshape(self.embedded_story, shape=(-1, embed_size))
+                # EXP: assign 0 weight to ALL the sentences except the last one
+                self.embedded_story = self.stories[:, -1, :]
 
             with tf.variable_scope("relational_network", reuse=tf.AUTO_REUSE):
 
@@ -107,8 +110,8 @@ class RelationalModel:
         else:
             x = tf.concat([self.embedded_story, self.second_endings], axis=1)
 
-        dense_1 = tf.contrib.layers.fully_connected(x, 4800, scope='f_1')
-        dense_2 = tf.contrib.layers.fully_connected(dense_1, 2400, scope='f_2')
-        dense_3 = tf.contrib.layers.fully_connected(dense_2, 2400, scope='f_3', activation_fn=None)
+        dense_1 = tf.contrib.layers.fully_connected(x, 2400, scope='f_1')
+        dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='f_2', activation_fn=None)
+        #dense_3 = tf.contrib.layers.fully_connected(dense_2, 2400, scope='f_3', activation_fn=None)
 
-        return dense_3
+        return dense_2
