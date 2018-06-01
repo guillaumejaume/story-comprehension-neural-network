@@ -417,12 +417,12 @@ def generate_data(all_embeddings, generate_random_ending=True):
         if generate_random_ending:
             all_keys = list(all_embeddings.keys())
             all_keys.remove(key)
-            closest_key = find_closest_ending(key, all_keys, all_embeddings)
-            wrong_ending = all_embeddings[closest_key][4]
-            # wrong_ending = all_embeddings[random.choice(all_keys)][4]  # wrong ending
-            print('current key: ', key)
-            print('closest key: ', closest_key)
-            print('\n')
+            #closest_key = find_closest_ending(key, all_keys, all_embeddings)
+            #wrong_ending = all_embeddings[closest_key][4]
+            wrong_ending = all_embeddings[random.choice(all_keys)][4]  # wrong ending
+            #print('current key: ', key)
+            #print('closest key: ', closest_key)
+            #print('\n')
         else:
             wrong_ending = val[5]
         wrong_endings.append(wrong_ending)
