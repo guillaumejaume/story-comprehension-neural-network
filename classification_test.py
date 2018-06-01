@@ -45,23 +45,23 @@ with graph.as_default():
         stories_ph = graph.get_operation_by_name("stories").outputs[0]
         endings_ph = graph.get_operation_by_name("endings").outputs[0]
         labels_ph = graph.get_operation_by_name("labels").outputs[0]
-      
+        
         # Tensor we want to evaluate
         predictions_ph = graph.get_operation_by_name("accuracy/predictions").outputs[0]
         accuracy_ph = graph.get_operation_by_name("accuracy/accuracy").outputs[0]
-      
-        print(test_labels)
+        probabilities_ph = graph.get_operation_by_name("dense_layers/probabilities").outputs[0]
+        
+        
 
-        predictions, accuracy = sess.run([predictions_ph,accuracy_ph],
+        predictions, accuracy, probabilities = sess.run([predictions_ph, accuracy_ph, probabilities_ph],
                                        {stories_ph: test_stories,
                                        endings_ph: test_endings,
                                        labels_ph: test_labels})
-                                       
-        #for i in range(len(predictions)/2):
-        #    if prediction[i] == 1
-        
-        final_accuracy = []
-        print('Predictions:', predictions)
-        #for i in range(predictions/2):
-        
+
+
+        slice_index = int(len(probabilities)/2)
+        prob = np.concatenate((probabilities[slice_index:,:], probabilities[:slice_index,:]), axis = 1)
+        res = [int(prob[i][0] > prob[i][2]) for i in range(len(prob))]
+        accuracy = sum(res)/ len(res)
+  
         print('Accuracy: ', accuracy)
