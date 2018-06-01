@@ -102,7 +102,7 @@ if FLAGS.combine_training_validation_datasets:
     temp_beginning_of_story_embeddings = []
     temp_ending_embeddings = []
     temp_labels = []
-#utils.generate_validation_data(validation_story_embeddings, FLAGS.story_type)
+
 beginning_of_story_embeddings_val,  ending_embeddings_val, labels_val =  utils.generate_training_data(
     validation_story_embeddings,
     FLAGS.story_type,
@@ -153,7 +153,7 @@ with tf.Graph().as_default():
         # Training step
         global_step = tf.Variable(0, name="global_step", trainable=False)
         # Define Adam optimizer
-        learning_rate = 0.0002
+        learning_rate = 0.002
         optimizer = tf.train.AdamOptimizer(learning_rate)
         train_op = optimizer.minimize(model.loss, global_step=global_step)
 
@@ -215,6 +215,7 @@ with tf.Graph().as_default():
             """
             Evaluates model on the validation set
             """
+
             feed_dict = {
                 model.inputs_beginning: inputs_beginning,
                 model.inputs_ending: inputs_ending,
