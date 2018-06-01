@@ -44,18 +44,18 @@ all_validation_embeddings = utils.load_embeddings(FLAGS.validation_embeddings_di
 # generate training data as np array
 training_stories, training_true_endings, training_wrong_endings = utils.generate_data(all_training_embeddings,
                                                                                       generate_random_ending=True)
-training_stories = training_stories + training_stories
-training_endings = training_true_endings + training_wrong_endings
+training_stories = np.concatenate((training_stories, training_stories), axis = 0)
+training_endings = np.concatenate((training_true_endings, training_wrong_endings), axis = 0)
 training_labels = [1] * len(training_true_endings) + [0] * len(training_wrong_endings)
-print(training_labels)
+
 training_true_endings = []
 training_wrong_endings = []
 
 # generate val data as np array
 val_stories, val_true_endings, val_wrong_endings = utils.generate_data(all_validation_embeddings,
                                                                        generate_random_ending=False)
-val_stories = val_stories + val_stories
-val_endings = val_true_endings + val_wrong_endings
+val_stories = np.concatenate((val_stories, val_stories), axis = 0)
+val_endings = np.concatenate((val_true_endings, val_wrong_endings), axis = 0)
 val_labels = [1] * len(val_true_endings) + [0] * len(val_wrong_endings)
 val_true_endings = []
 val_wrong_endings = []
@@ -190,7 +190,7 @@ with tf.Graph().as_default():
             print("current_step ", current_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                dev_step(x_beginning_val, x_ending_val, y_val, writer=val_summary_writer)
+                dev_step(val_stories, val_endings, val_labels, writer=val_summary_writer)
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)

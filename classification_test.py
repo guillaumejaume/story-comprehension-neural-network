@@ -10,7 +10,7 @@ tf.flags.DEFINE_string("testing_embeddings_dir", "./data/embeddings_test/", "Pat
 # Model parameters
 tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings")
 # Testing parameters
-tf.flags.DEFINE_string("checkpoint_dir", "./runs/1527237874/checkpoints", "Checkpoint directory from training run")
+tf.flags.DEFINE_string("checkpoint_dir", "./runs/1527864291/checkpoints", "Checkpoint directory from training run")
 FLAGS = tf.flags.FLAGS
 
 # Prepare data
@@ -21,8 +21,8 @@ all_testing_embeddings = utils.load_embeddings(FLAGS.testing_embeddings_dir,
                                                FLAGS.embedding_dim)
 # generate data
 test_stories, test_true_endings, test_wrong_endings = utils.generate_data(all_testing_embeddings)
-test_stories = test_stories + test_stories
-test_endings = test_true_endings + test_wrong_endings
+test_stories = np.concatenate((test_stories, test_stories),  axis = 0)
+test_endings = np.concatenate((test_true_endings, test_wrong_endings),  axis = 0)
 
 # construct test input
 test_labels = [1] * len(test_true_endings) + [0] * len(test_wrong_endings)
@@ -56,6 +56,10 @@ with graph.as_default():
                                        {stories_ph: test_stories,
                                        endings_ph: test_endings,
                                        labels_ph: test_labels})
+                                       
+        #for i in range(len(predictions)/2):
+        #    if prediction[i] == 1
+        
         final_accuracy = []
         print('Predictions:', predictions)
         #for i in range(predictions/2):
