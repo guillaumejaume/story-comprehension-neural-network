@@ -1,0 +1,2 @@
+nltk
+python2 -c "import nltk; nltk.download('punkt')"

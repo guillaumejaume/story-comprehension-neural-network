@@ -1,33 +1,23 @@
-import utils
-
-from sentenceclozetaskmodel import SentenceClozeTaskModel
-
-import tensorflow as tf
 import os
 import time
 import datetime
-import random
 import numpy as np
 
-#Training parameters
+import tensorflow as tf
+
+import utils
+from classification_model import ClassificationModel
+
 
 # Data loading parameters
-tf.flags.DEFINE_string("path_to_training_embeddings", "./data/embeddings/", "Path to the embeddings used for training")
-tf.flags.DEFINE_string("path_to_validation_embeddings", "./data/embeddings_test/", "Path to the embeddings used for validation")
-tf.flags.DEFINE_string("path_to_training_ids", "./data/embeddings/id.txt", "Path to the file with the sentences' ids used for training")
-tf.flags.DEFINE_string("path_to_validation_ids", "./data/validation_ids.txt", "Path to the file with the sentences' ids used for validation")
-tf.flags.DEFINE_string("story_type", "last_sentence", "Story type: {no_context, last_sentence, plot (first 4 sentences), full (4 sentences + ending)}")
-tf.flags.DEFINE_string("num_embeddings_per_story_for_training", 5, "The number of sentences in a story.")
-tf.flags.DEFINE_string("num_embeddings_per_story_for_validation", 6, "The number of sentences in a story.")
-tf.flags.DEFINE_string("embeddings_dim", 4800, "The dimension of the embeddings")
-tf.flags.DEFINE_string("generate_random_ending", True, "Generate random ending for the dataset that lacks it (eg. training dataset)")
+tf.flags.DEFINE_string("training_embeddings_dir", "./data/embeddings_training/", "Path to the embeddings used for training")
+tf.flags.DEFINE_string("validation_embeddings_dir", "./data/embeddings_validation/", "Path to the embeddings used for validation")
+tf.flags.DEFINE_float("percentage_of_val", 0.50, "Percentage of the val set added to training")
 
 # Model parameters
-
-# Embedding parameters
+tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings")
 
 # Training parameters
-tf.flags.DEFINE_integer("max_grad_norm", 5, "max norm of the gradient")
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on validation set after this many steps")
@@ -38,46 +28,61 @@ tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store")
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 
-# for running on EULER, adapt this
-tf.flags.DEFINE_integer("inter_op_parallelism_threads", 0,
-                        "TF nodes that perform blocking operations are enqueued on a pool of "
-                        "inter_op_parallelism_threads available in each process.")
-tf.flags.DEFINE_integer("intra_op_parallelism_threads", 0,
-                        "The execution of an individual op (for some op types) can be parallelized"
-                        " on a pool of intra_op_parallelism_threads.")
-
 FLAGS = tf.flags.FLAGS
 
 # Prepare the data
-print("Load embeddings for training and validation \n")
-story_embeddings, story_ids = utils.load_embeddings(FLAGS.path_to_training_embeddings, FLAGS.path_to_training_ids, FLAGS.num_embeddings_per_story_for_training, FLAGS.embeddings_dim)
-validation_story_embeddings, validation_story_ids = utils.load_embeddings(FLAGS.path_to_validation_embeddings, FLAGS.path_to_validation_ids, FLAGS.num_embeddings_per_story_for_validation, FLAGS.embeddings_dim)
-print("Loading and preprocessing training and validation datasets \n")
-beginning_of_story_embeddings,  ending_embeddings, labels = utils.generate_training_data(story_embeddings, FLAGS.story_type, FLAGS.generate_random_ending)
+print("Load training and validation embeddings \n")
 
-validation_story_ids = utils.load_raw_data(FLAGS.path_to_validation_ids)
-validation_story_embeddings = utils.filter_data_based_on_ids(validation_story_embeddings, validation_story_ids)
-beginning_of_story_embeddings_val,  ending_embeddings_val, labels_val = utils.generate_validation_data(validation_story_embeddings, FLAGS.story_type)
+# load training embeddings
+all_training_embeddings = utils.load_embeddings(FLAGS.training_embeddings_dir,
+                                                FLAGS.embedding_dim)
 
-# Randomly shuffle training and validation data
-x_beginning_train, x_ending_train, y_train = utils.shuffle_data(beginning_of_story_embeddings, ending_embeddings, labels)
-x_beginning_val, x_ending_val, y_val = utils.shuffle_data(beginning_of_story_embeddings_val, ending_embeddings_val, labels_val)
+# load validation embeddings
+all_validation_embeddings = utils.load_embeddings(FLAGS.validation_embeddings_dir,
+                                                  FLAGS.embedding_dim)
 
-# Summary of the loaded data
-print('Loaded: ', len(x_beginning_train), ' samples for training')
-print('Loaded: ', len(x_beginning_val), ' samples for validation')
+# generate training data as np array
+training_stories, training_true_endings, training_wrong_endings = utils.generate_data(all_training_embeddings,
+                                                                                      generate_random_ending=True)
+training_stories = training_stories + training_stories
+training_endings = training_true_endings + training_wrong_endings
+training_labels = [1] * len(training_true_endings) + [0] * len(training_wrong_endings)
+print(training_labels)
+training_true_endings = []
+training_wrong_endings = []
 
-print('Training input1 has shape: ', np.shape(x_beginning_train))
-print('Validation input1 has shape: ', np.shape(x_beginning_val))
+# generate val data as np array
+val_stories, val_true_endings, val_wrong_endings = utils.generate_data(all_validation_embeddings,
+                                                                       generate_random_ending=False)
+val_stories = val_stories + val_stories
+val_endings = val_true_endings + val_wrong_endings
+val_labels = [1] * len(val_true_endings) + [0] * len(val_wrong_endings)
+val_true_endings = []
+val_wrong_endings = []
 
-print('Training input2 has shape: ', np.shape(x_ending_train))
-print('Validation input2 has shape: ', np.shape(x_ending_val))
+#Split training data in validation and training
+"""
+train_sample_index = int(0.99 * float(len(training_stories)))
+training_stories, val_stories = training_stories[:train_sample_index], training_stories[train_sample_index:]
+training_endings, val_endings = training_endings[:train_sample_index], training_endings[train_sample_index:]
+training_labels, val_labels = training_labels[:train_sample_index], training_labels[train_sample_index:]
+"""
 
-print('Training labels has shape: ', np.shape(y_train))
-print('Validation labels has shape: ', np.shape(y_val))
+# summary
+print('# of training stories: ', len(training_stories), ' with shape: ', np.shape(training_stories))
+print('# of training end: ', len(training_endings), ' with shape: ', np.shape(training_endings))
+print('# of training labels: ', len(training_labels), ' with shape: ', np.shape(training_labels))
+print('\n')
 
-# Generate training batches
-batches = utils.batch_iter(list(zip(x_beginning_train, x_ending_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+print('# of val stories: ', len(val_stories), ' with shape: ', np.shape(val_stories))
+print('# of val end: ', len(val_endings), ' with shape: ', np.shape(val_endings))
+print('# of val labels: ', len(val_labels), ' with shape: ', np.shape(val_labels))
+print('\n')
+
+# generate training batches
+batches = utils.batch_iter(list(zip(training_stories, training_endings, training_labels)),
+                           FLAGS.batch_size,
+                           FLAGS.num_epochs)
 
 print("Loading and preprocessing done \n")
 
@@ -86,17 +91,17 @@ with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
         allow_soft_placement=FLAGS.allow_soft_placement,
         log_device_placement=FLAGS.log_device_placement,
-        inter_op_parallelism_threads=FLAGS.inter_op_parallelism_threads,
-        intra_op_parallelism_threads=FLAGS.intra_op_parallelism_threads)
+        inter_op_parallelism_threads=0,
+        intra_op_parallelism_threads=0)
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         # Initialize model
-        model = SentenceClozeTaskModel()
+        model = ClassificationModel()
 
         # Training step
         global_step = tf.Variable(0, name="global_step", trainable=False)
         # Define Adam optimizer
-        learning_rate = 0.0002
+        learning_rate = 0.002
         optimizer = tf.train.AdamOptimizer(learning_rate)
         train_op = optimizer.minimize(model.loss, global_step=global_step)
 
@@ -131,13 +136,13 @@ with tf.Graph().as_default():
         sess.graph.finalize()
 
         # Define training and validation steps (batch)
-        def train_step(inputs_beginning, inputs_ending, labels):
+        def train_step(story, ending, labels):
             """
             A single training step
             """
             feed_dict = {
-                model.inputs_beginning: inputs_beginning,
-                model.inputs_ending: inputs_ending,
+                model.stories: story,
+                model.endings: ending,
                 model.labels: labels,
             }
             _, step, summaries, loss, accuracy = sess.run([
@@ -154,13 +159,13 @@ with tf.Graph().as_default():
             print("{}: step {}, acc {:g}".format(time_str, step, accuracy))
             train_summary_writer.add_summary(summaries, step)
 
-        def dev_step(inputs_beginning, inputs_ending, labels, writer=None):
+        def dev_step(story, ending, labels, writer=None):
             """
             Evaluates model on the validation set
             """
             feed_dict = {
-                model.inputs_beginning: inputs_beginning,
-                model.inputs_ending: inputs_ending,
+                model.stories: story,
+                model.endings: ending,
                 model.labels: labels,
             }
             step, summaries, predictions, accuracy = sess.run([

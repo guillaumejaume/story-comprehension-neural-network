@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 import utils
-from sentenceclozetaskmodel import SentenceClozeTaskModel
+from classification_model import SentenceClozeTaskModel
 
 
 

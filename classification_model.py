@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-class SentenceClozeTaskModel:
+class ClassificationModel:
     """
     Simple model with 3 fc hidden layers
 
@@ -10,16 +10,19 @@ class SentenceClozeTaskModel:
     def __init__(self):
 
         self.embed_size = 4800
-        self.inputs_beginning = tf.placeholder(
+        # story place holder dim = [batch_size x #sent x emd_dim]
+        self.stories = tf.placeholder(
+            dtype=tf.float32,
+            shape=[None, 4, self.embed_size],
+            name='stories'
+        )
+        # ending place holder dim = [batch_size x emd_dim]
+        self.endings = tf.placeholder(
             dtype=tf.float32,
             shape=[None, self.embed_size],
-            name='inputs_beginning'
+            name='endings'
         )
-        self.inputs_ending = tf.placeholder(
-            dtype=tf.float32,
-            shape=[None, self.embed_size],
-            name='inputs_ending'
-        )
+        # labels place holder dim = [batch_size]
         self.labels = tf.placeholder(
             dtype=tf.int32,
             shape=None,
@@ -28,7 +31,11 @@ class SentenceClozeTaskModel:
 
         with tf.device('/gpu:0'):
             with tf.variable_scope("dense_layers"):
-                self.inputs = self.inputs_beginning + self.inputs_ending
+
+                 #self.stories[:, 0, :] + \
+                              #self.stories[:, 1, :] + \
+                              #self.stories[:, 2, :] + \
+                self.inputs = self.stories[:, 3, :] + self.endings
 
                 dense_1 = tf.layers.dense(inputs=self.inputs, units=2400, activation=tf.nn.relu)
                 dense_2 = tf.layers.dense(inputs=dense_1, units=1200, activation=tf.nn.relu)
