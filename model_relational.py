@@ -36,10 +36,18 @@ class RelationalModel:
         with tf.device('/gpu:0'):
             with tf.variable_scope("story_embedding"):
 
-                # self.sentence_weights = tf.get_variable("sentence_weights",
-                #                                         shape=[4, 1],
-                #                                         dtype=tf.float32,
-                #                                         initializer=tf.contrib.layers.xavier_initializer())
+                init = tf.constant_initializer([0.25, 0.25, 0.25, 0.25])
+                self.sentence_weights = tf.get_variable("sentence_weights",
+                                                        shape=[4, 1],
+                                                        dtype=tf.float32,
+                                                        initializer=init,
+                                                        constraint=tf.keras.constraints.min_max_norm(min_value=1,
+                                                                                                     max_value=1))
+
+                # # self.sentence_weights = tf.clip_by_value(self.sentence_weights,
+                # #                                          clip_value_min=0,
+                # #                                          clip_value_max=1,
+                # #                                          name='clip_weights')
                 #
                 # stories = tf.reshape(self.stories, shape=(-1, 4))
                 #
@@ -48,20 +56,44 @@ class RelationalModel:
                 # self.embedded_story = tf.reshape(self.embedded_story, shape=(-1, embed_size))
 
                 # EXP: assign 0 weight to ALL the sentences except the last one
-                self.embedded_story = self.stories[:, -1, :]
+                # self.embedded_story = self.stories[:, -1, :]
+
+                # EXP: sum al the vectors
+                # self.embedded_story = self.stories[:, 0, :] + self.stories[:, 1, :] +
+                #                       self.stories[:, 2, :] + self.stories[:, 3, :]
 
             with tf.variable_scope("relational_network", reuse=tf.AUTO_REUSE):
 
-                # relation between story embedding and first ending
-                self.r_s1 = self.relational_network(use_first_ending=True)
+                self.r_11 = self.relational_network(self.stories[:, 0, :], self.first_endings)
+                self.r_12 = self.relational_network(self.stories[:, 1, :], self.first_endings)
+                self.r_13 = self.relational_network(self.stories[:, 2, :], self.first_endings)
+                self.r_14 = self.relational_network(self.stories[:, 3, :], self.first_endings)
 
-                # relation between story embedding and second ending
-                self.r_s2 = self.relational_network(use_first_ending=False)
+                self.r_21 = self.relational_network(self.stories[:, 0, :], self.second_endings)
+                self.r_22 = self.relational_network(self.stories[:, 1, :], self.second_endings)
+                self.r_23 = self.relational_network(self.stories[:, 2, :], self.second_endings)
+                self.r_24 = self.relational_network(self.stories[:, 3, :], self.second_endings)
+
+                self.r1 = self.r_11 + self.r_12 + self.r_13 + self.r_14
+                self.r2 = self.r_21 + self.r_22 + self.r_23 + self.r_24
+
+                # # relation between story embedding and first ending
+                # self.r_s1 = self.relational_network(self.embedded_story, self.first_endings)
+                #
+                # # relation between story embedding and second ending
+                # self.r_s2 = self.relational_network(self.embedded_story, self.second_endings)
+                #
+                # # relation between first ending and second ending
+                # self.r_s3 = self.relational_network(self.first_endings, self.second_endings)
 
             with tf.variable_scope("sigma"):
 
                 # concat relations Story-First and Story-Second
-                self.r_concat = tf.concat([self.r_s1, self.r_s2], axis=1)
+                # self.r_concat = tf.concat([self.r_s1, self.r_s2], axis=1)
+                # self.r_concat = tf.concat([self.r_11, self.r_12, self.r_13, self.r_14,
+                #                            self.r_21, self.r_22, self.r_23, self.r_24], axis=1)
+
+                self.r_concat = tf.concat([self.r1, self.r2], axis=1)
 
                 # 2 MLP layers with ReLu activation
                 dense_1 = tf.contrib.layers.fully_connected(self.r_concat, 1200, scope='sigma_1')
@@ -90,7 +122,7 @@ class RelationalModel:
                 self.accuracy = tf.reduce_mean(tf.cast(self.is_equal, tf.float32),
                                                name='accuracy')
 
-    def relational_network(self, use_first_ending):
+    def relational_network(self, object_1, object_2):
         """ Relational network: 3 dense layers
             - ReLU activation for dense 1 & 2
             - Linear activation for dense 3
@@ -105,13 +137,15 @@ class RelationalModel:
               ----------
               r: similarity between the story and the ending
         """
-        if use_first_ending:
-            x = tf.concat([self.embedded_story, self.first_endings], axis=1)
-        else:
-            x = tf.concat([self.embedded_story, self.second_endings], axis=1)
+        # if use_first_ending:
+        #     x = tf.concat([self.embedded_story, self.first_endings], axis=1)
+        # else:
+        #     x = tf.concat([self.embedded_story, self.second_endings], axis=1)
+
+        x = tf.concat([object_1, object_2], axis=1)
 
         dense_1 = tf.contrib.layers.fully_connected(x, 2400, scope='f_1')
         dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='f_2', activation_fn=None)
-        #dense_3 = tf.contrib.layers.fully_connected(dense_2, 2400, scope='f_3', activation_fn=None)
+        dense_3 = tf.contrib.layers.fully_connected(dense_2, 1200, scope='f_3', activation_fn=None)
 
-        return dense_2
+        return dense_3
