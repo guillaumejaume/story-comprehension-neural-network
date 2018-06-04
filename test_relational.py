@@ -10,7 +10,7 @@ tf.flags.DEFINE_string("testing_embeddings_dir", "./data/embeddings_test/", "Pat
 # Model parameters
 tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings")
 # Testing parameters
-tf.flags.DEFINE_string("checkpoint_dir", "./runs/1527852211/checkpoints", "Checkpoint directory from training run")
+tf.flags.DEFINE_string("checkpoint_dir", "./runs/1528115881/checkpoints", "Checkpoint directory from training run")
 FLAGS = tf.flags.FLAGS
 
 # Prepare data
@@ -43,10 +43,8 @@ second_test_endings = np.asarray(second_test_endings)
 checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
 graph = tf.Graph()
 with graph.as_default():
-    session_conf = tf.ConfigProto(
-        allow_soft_placement=True,
-        log_device_placement=False
-    )
+    session_conf = tf.ConfigProto(allow_soft_placement=True,
+                                  log_device_placement=False)
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         # Load the saved meta graph and restore variables
