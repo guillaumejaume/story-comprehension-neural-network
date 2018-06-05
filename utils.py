@@ -401,33 +401,44 @@ def generate_training_data2(story_embeddings, story_type, generate_random_ending
     return beginning_of_story_embeddings,  ending_embeddings, labels
 
 
-def generate_data(all_embeddings, generate_random_ending=True):
+def generate_data(all_embeddings, neg_samples_file=''):
 
     stories = []
     true_endings = []
     wrong_endings = []
 
+    if neg_samples_file:
+        closest_ending_pairs = get_closest_pairs(neg_samples_file)
+
     for key, val in all_embeddings.items():
-        story = val[:4]  # list of 4 array of 4800 float
-        stories.append(story)
-
-        true_ending = val[4]  # true ending
-        true_endings.append(true_ending)
-
-        if generate_random_ending:
-            all_keys = list(all_embeddings.keys())
-            all_keys.remove(key)
-            closest_key = find_closest_ending(key, all_keys, all_embeddings)
-            wrong_ending = all_embeddings[closest_key][4]
-            # wrong_ending = all_embeddings[random.choice(all_keys)][4]  # wrong ending
-            print('current key: ', key)
-            print('closest key: ', closest_key)
-            print('\n')
-        else:
-            wrong_ending = val[5]
-        wrong_endings.append(wrong_ending)
+        # @TODO Reorganize later, brute force now
+        if neg_samples_file and key in closest_ending_pairs:
+            story = val[:4]  # list of 4 array of 4800 float
+            true_ending = val[4]  # true ending
+            wrong_ending = all_embeddings[closest_ending_pairs[key]][4]
+            stories.append(story)
+            true_endings.append(true_ending)
+            wrong_endings.append(wrong_ending)
+        elif not neg_samples_file:
+            story = val[:4]  # list of 4 array of 4800 float
+            true_ending = val[4]  # true ending
+            if len(val) > 5:
+                wrong_ending = val[5]
+                wrong_endings.append(wrong_ending)
+            stories.append(story)
+            true_endings.append(true_ending)
 
     return np.asarray(stories), np.asarray(true_endings), np.asarray(wrong_endings)
+
+
+def get_closest_pairs(neg_samples_file):
+    all_pairs = {}
+    with open(neg_samples_file) as f:
+        for line in f:
+            line = line.rstrip()
+            keys = line.split(' ')
+            all_pairs[keys[0]] = keys[1]
+    return all_pairs
 
 
 def find_closest_ending(current_key, all_keys, all_embeddings):
