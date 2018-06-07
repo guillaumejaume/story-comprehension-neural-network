@@ -6,15 +6,13 @@ import numpy as np
 import tensorflow as tf
 
 import utils
-from toy_classification_model import ClassificationModel
-from classification_model import RelationalClassificationModel
 
+from classification_model import RelationalClassificationModel
 
 # Data loading parameters
 tf.flags.DEFINE_string("training_embeddings_dir", "./data/embeddings_training/", "Path to the embeddings used for training")
 tf.flags.DEFINE_string("validation_embeddings_dir", "./data/embeddings_validation/", "Path to the embeddings used for validation")
 tf.flags.DEFINE_string("training_negative_sampling_file", "./training_neighbours.txt", "Path to the file used for negative sampling for training dataset")
-tf.flags.DEFINE_float("percentage_of_val", 0.50, "Percentage of the val set added to training")
 
 # Model parameters
 tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings")
