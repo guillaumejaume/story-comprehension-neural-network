@@ -7,11 +7,13 @@ import tensorflow as tf
 
 import utils
 from classification_model import ClassificationModel
+from relational_classification_model import RelationalClassificationModel
 
 
 # Data loading parameters
 tf.flags.DEFINE_string("training_embeddings_dir", "./data/embeddings_training/", "Path to the embeddings used for training")
 tf.flags.DEFINE_string("validation_embeddings_dir", "./data/embeddings_validation/", "Path to the embeddings used for validation")
+tf.flags.DEFINE_string("training_negative_sampling_file", "./training_neighbours.txt", "Path to the file used for negative sampling for training dataset")
 tf.flags.DEFINE_float("percentage_of_val", 0.50, "Percentage of the val set added to training")
 
 # Model parameters
@@ -20,11 +22,12 @@ tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings"
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs")
-tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on validation set after this many steps")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps")
+tf.flags.DEFINE_integer("evaluate_every", 20, "Evaluate model on validation set after this many steps")
+tf.flags.DEFINE_integer("checkpoint_every", 20, "Save model after this many steps")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store")
 
 # Tensorflow Parameters
+tf.flags.DEFINE_boolean("use_training_dataset", True, "Use training dataset")
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 
@@ -33,40 +36,37 @@ FLAGS = tf.flags.FLAGS
 # Prepare the data
 print("Load training and validation embeddings \n")
 
-# load training embeddings
-all_training_embeddings = utils.load_embeddings(FLAGS.training_embeddings_dir,
-                                                FLAGS.embedding_dim)
+# load training embeddings and generate training data
+if FLAGS.use_training_dataset:
+    all_training_embeddings = utils.load_embeddings(FLAGS.training_embeddings_dir, FLAGS.embedding_dim)
+    training_stories, training_true_endings, training_wrong_endings = utils.generate_data(all_training_embeddings)
 
-# load validation embeddings
-all_validation_embeddings = utils.load_embeddings(FLAGS.validation_embeddings_dir,
-                                                  FLAGS.embedding_dim)
+    print("len(training_true_endings), len(training_wrong_endings)", len(training_true_endings), len(training_wrong_endings))
+    training_stories = np.concatenate((training_stories, training_stories), axis=0)
+    training_endings = np.concatenate((training_true_endings, training_wrong_endings), axis=0)
+    training_labels = [1] * len(training_true_endings) + [0] * len(training_wrong_endings)
 
-# generate training data as np array
-training_stories, training_true_endings, training_wrong_endings = utils.generate_data(all_training_embeddings,
-                                                                                      generate_random_ending=True)
-training_stories = np.concatenate((training_stories, training_stories), axis = 0)
-training_endings = np.concatenate((training_true_endings, training_wrong_endings), axis = 0)
-training_labels = [1] * len(training_true_endings) + [0] * len(training_wrong_endings)
+    training_true_endings = []
+    training_wrong_endings = []
 
-training_true_endings = []
-training_wrong_endings = []
-
-# generate val data as np array
-val_stories, val_true_endings, val_wrong_endings = utils.generate_data(all_validation_embeddings,
-                                                                       generate_random_ending=False)
+# load validation embeddings and generate validation data
+all_validation_embeddings = utils.load_embeddings(FLAGS.validation_embeddings_dir,FLAGS.embedding_dim)
+val_stories, val_true_endings, val_wrong_endings = utils.generate_data(all_validation_embeddings)
 val_stories = np.concatenate((val_stories, val_stories), axis = 0)
 val_endings = np.concatenate((val_true_endings, val_wrong_endings), axis = 0)
 val_labels = [1] * len(val_true_endings) + [0] * len(val_wrong_endings)
 val_true_endings = []
 val_wrong_endings = []
 
+val_stories, val_endings, val_labels = utils.shuffle_data(val_stories, val_endings, val_labels)
+
 #Split training data in validation and training
-"""
-train_sample_index = int(0.99 * float(len(training_stories)))
-training_stories, val_stories = training_stories[:train_sample_index], training_stories[train_sample_index:]
-training_endings, val_endings = training_endings[:train_sample_index], training_endings[train_sample_index:]
-training_labels, val_labels = training_labels[:train_sample_index], training_labels[train_sample_index:]
-"""
+
+if not FLAGS.use_training_dataset:
+    train_sample_index = int(0.9 * float(len(val_stories)))
+    training_stories, val_stories = val_stories[:train_sample_index], val_stories[train_sample_index:]
+    training_endings, val_endings = val_endings[:train_sample_index], val_endings[train_sample_index:]
+    training_labels, val_labels = val_labels[:train_sample_index], val_labels[train_sample_index:]
 
 # summary
 print('# of training stories: ', len(training_stories), ' with shape: ', np.shape(training_stories))
@@ -96,12 +96,12 @@ with tf.Graph().as_default():
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         # Initialize model
-        model = ClassificationModel()
+        model = RelationalClassificationModel(FLAGS.embedding_dim)
 
         # Training step
         global_step = tf.Variable(0, name="global_step", trainable=False)
         # Define Adam optimizer
-        learning_rate = 0.002
+        learning_rate = 0.00001
         optimizer = tf.train.AdamOptimizer(learning_rate)
         train_op = optimizer.minimize(model.loss, global_step=global_step)
 
@@ -143,7 +143,7 @@ with tf.Graph().as_default():
             feed_dict = {
                 model.stories: story,
                 model.endings: ending,
-                model.labels: labels,
+                model.labels: labels
             }
             _, step, summaries, loss, accuracy = sess.run([
                     train_op,
