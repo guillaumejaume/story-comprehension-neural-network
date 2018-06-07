@@ -1,4 +1,3 @@
-#import tensorflow as tf
 import numpy as np
 import csv
 import re
@@ -346,6 +345,8 @@ def generate_data(all_embeddings, neg_samples_file=''):
                 wrong_ending = val[5]
                 wrong_endings.append(wrong_ending)
             else:
+                all_keys = list(all_embeddings.keys())
+                all_keys.remove(key)
                 wrong_ending = all_embeddings[random.choice(all_keys)][4]
                 wrong_endings.append(wrong_ending)
             stories.append(story)
@@ -459,6 +460,11 @@ def shuffle_data(a, b, c):
 
     return a, b, c
 
+def write_results_to_csv(filename, stories, results):
+    with open(filename, "w") as f:
+        writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        for i in range(len(stories)):
+            writer.writerow(stories[i].get_story_with_both_endings_as_list() + list(str(results[i])))
 
 
 
