@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+
 class CorrectVsWrongEndingClassifier:
     """
     CorrectVsWrongEndingClassifier model:
@@ -17,7 +18,6 @@ class CorrectVsWrongEndingClassifier:
         - labels: bs Tensor
         0 -> the ending is wrong, 1 -> the ending is correct
     """
-
 
     def __init__(self, embed_size):
 
