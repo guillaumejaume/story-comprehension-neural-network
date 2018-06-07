@@ -1,16 +1,29 @@
 import tensorflow as tf
 
 
-class RelationalModel:
+class AlternativeEndingAwareClassifier:
     """
-    New contributions:
-        - Weighted sum of each sentence embedding to construct a story embedding
-        - Move from a classification task to a "Find the most likely option between 2 options"
+    AlternativeEndingAwareClassifier model:
+        - Based on a Relation Network (RN)
+        - Output a probability of option 1/2 being respectively the correct and wrong ending
 
+    Class Parameters:
+        - embed_size: embedding dimension
+
+    TensorFlow Parameters:
+        - stories: bs x 4 x emb_dim Tensor
+        form the context story by stacking the embedding of the four intro sentences
+        - first_endings :  bs x emb_dim Tensor
+        one of the two alternative (can either be correct or wrong)
+        - second_endings : bs x emd_dim Tensor
+        the second alternative (can also either be correct or wrong)
+        - labels: bs Tensor
+        0 -> first ending is correct, 1 -> second ending is correct
     """
 
     def __init__(self, embed_size):
 
+        # embedding dimension
         self.embed_size = embed_size
 
         # story place holder dim = [batch_size x #sent x emd_dim]
@@ -34,33 +47,6 @@ class RelationalModel:
                                      name='labels')
 
         with tf.device('/gpu:0'):
-            with tf.variable_scope("story_embedding"):
-
-                init = tf.constant_initializer([0.25, 0.25, 0.25, 0.25])
-                self.sentence_weights = tf.get_variable("sentence_weights",
-                                                        shape=[4, 1],
-                                                        dtype=tf.float32,
-                                                        initializer=init,
-                                                        constraint=tf.keras.constraints.min_max_norm(min_value=1,
-                                                                                                     max_value=1))
-
-                # # self.sentence_weights = tf.clip_by_value(self.sentence_weights,
-                # #                                          clip_value_min=0,
-                # #                                          clip_value_max=1,
-                # #                                          name='clip_weights')
-                #
-                # stories = tf.reshape(self.stories, shape=(-1, 4))
-                #
-                # # dim = [batch_size x emd_dim]
-                # self.embedded_story = tf.matmul(stories, self.sentence_weights)
-                # self.embedded_story = tf.reshape(self.embedded_story, shape=(-1, embed_size))
-
-                # EXP: assign 0 weight to ALL the sentences except the last one
-                # self.embedded_story = self.stories[:, -1, :]
-
-                # EXP: sum al the vectors
-                # self.embedded_story = self.stories[:, 0, :] + self.stories[:, 1, :] +
-                #                       self.stories[:, 2, :] + self.stories[:, 3, :]
 
             with tf.variable_scope("relational_network", reuse=tf.AUTO_REUSE):
 
@@ -74,35 +60,42 @@ class RelationalModel:
                 self.r_23 = self.relational_network(self.stories[:, 2, :], self.second_endings)
                 self.r_24 = self.relational_network(self.stories[:, 3, :], self.second_endings)
 
+                ######################################################################
+                # Sum each relation
                 self.r1 = self.r_11 + self.r_12 + self.r_13 + self.r_14
                 self.r2 = self.r_21 + self.r_22 + self.r_23 + self.r_24
+                ######################################################################
 
-                # # relation between story embedding and first ending
-                # self.r_s1 = self.relational_network(self.embedded_story, self.first_endings)
+                ######################################################################
+                # # Alternative relation aggregation: take the relation with max norm
+                # r1 = tf.stack([self.r_11, self.r_12, self.r_13, self.r_14], axis=1)
+                # norm_r1 = tf.norm(r1, axis=2)
+                # index_max_r1 = tf.argmax(norm_r1, axis=1, output_type=tf.int32)
                 #
-                # # relation between story embedding and second ending
-                # self.r_s2 = self.relational_network(self.embedded_story, self.second_endings)
+                # self.max_indices = index_max_r1
+                # self.norms = norm_r1
                 #
-                # # relation between first ending and second ending
-                # self.r_s3 = self.relational_network(self.first_endings, self.second_endings)
+                # r2 = tf.stack([self.r_21, self.r_22, self.r_23, self.r_24], axis=1)
+                # norm_r2 = tf.norm(r1, axis=2)
+                # index_max_r2 = tf.argmax(norm_r2, axis=1, output_type=tf.int32)
+                #
+                # self.r1 = self.extract_max_norm(r1, index_max_r1)
+                # self.r2 = self.extract_max_norm(r2, index_max_r2)
+                # ######################################################################
 
-            with tf.variable_scope("sigma"):
-
-                # concat relations Story-First and Story-Second
-                # self.r_concat = tf.concat([self.r_s1, self.r_s2], axis=1)
-                # self.r_concat = tf.concat([self.r_11, self.r_12, self.r_13, self.r_14,
-                #                            self.r_21, self.r_22, self.r_23, self.r_24], axis=1)
-
+                # concat relation from r1 and r2
                 self.r_concat = tf.concat([self.r1, self.r2], axis=1)
 
                 # 2 MLP layers with ReLu activation
                 dense_1 = tf.contrib.layers.fully_connected(self.r_concat, 1200, scope='sigma_1')
-                dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='sigma_2')
+                dropout_1 = tf.layers.dropout(inputs=dense_1, rate=0.5)
+                dense_2 = tf.contrib.layers.fully_connected(dropout_1, 1200, scope='sigma_2')
+                dropout_2 = tf.layers.dropout(inputs=dense_2, rate=0.5)
 
             with tf.variable_scope("softmax"):
 
                 # softmax layer
-                self.logits = tf.contrib.layers.fully_connected(dense_2, 2, scope='sigma_3', activation_fn=None)
+                self.logits = tf.contrib.layers.fully_connected(dropout_2, 2, scope='sigma_3', activation_fn=None)
                 self.probabilities = tf.nn.softmax(self.logits, name='probabilities')
 
             with tf.variable_scope("loss"):
@@ -122,6 +115,42 @@ class RelationalModel:
                 self.accuracy = tf.reduce_mean(tf.cast(self.is_equal, tf.float32),
                                                name='accuracy')
 
+    # def extract_max_norm(self, r, max_indices):
+    #     """ Extract the max norm in the second dim of r
+    #           Parameters:
+    #           -----------
+    #           - r: bs x 4 x emd_dim tensor
+    #           - max_indices:
+    #           index of the vector (out of the 4 in dim 2) with max norm
+    #
+    #           Returns:
+    #           ----------
+    #           out: bs x emd_dim tensor
+    #     """
+    #
+    #     batch_size = tf.shape(r)[0]
+    #     batch_id = tf.constant(0, dtype=tf.int32)
+    #
+    #     def condition(batch_id, output):
+    #         return batch_id < batch_size
+    #
+    #     def process_batch_step(batch_id, output_ta_t):
+    #         current_batch_input = input_as_ta.read(batch_id)
+    #         new_output = current_batch_input[max_indices[batch_id], :]
+    #         output_ta_t = output_ta_t.write(batch_id, new_output)
+    #         return batch_id + 1, output_ta_t
+    #
+    #     output_as_ta = tf.TensorArray(size=batch_size, dtype=tf.float32)
+    #     input_as_ta = tf.TensorArray(size=batch_size, dtype=tf.float32)
+    #     input_as_ta = input_as_ta.unstack(r)
+    #
+    #     _, out = tf.while_loop(cond=condition,
+    #                            body=process_batch_step,
+    #                            loop_vars=(batch_id, output_as_ta))
+    #
+    #     out = out.stack()
+    #     return out
+
     def relational_network(self, object_1, object_2):
         """ Relational network: 3 dense layers
             - ReLU activation for dense 1 & 2
@@ -137,15 +166,10 @@ class RelationalModel:
               ----------
               r: similarity between the story and the ending
         """
-        # if use_first_ending:
-        #     x = tf.concat([self.embedded_story, self.first_endings], axis=1)
-        # else:
-        #     x = tf.concat([self.embedded_story, self.second_endings], axis=1)
-
         x = tf.concat([object_1, object_2], axis=1)
 
         dense_1 = tf.contrib.layers.fully_connected(x, 2400, scope='f_1')
-        dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='f_2', activation_fn=None)
+        dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='f_2')
         dense_3 = tf.contrib.layers.fully_connected(dense_2, 1200, scope='f_3', activation_fn=None)
 
         return dense_3

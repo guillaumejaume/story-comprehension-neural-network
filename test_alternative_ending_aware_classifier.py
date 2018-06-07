@@ -7,10 +7,12 @@ import utils
 
 # Data loading parameters
 tf.flags.DEFINE_string("testing_embeddings_dir", "./data/embeddings_test/", "Path to the embeddings used for testing")
+
 # Model parameters
 tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings")
+
 # Testing parameters
-tf.flags.DEFINE_string("checkpoint_dir", "./runs/1528115881/checkpoints", "Checkpoint directory from training run")
+tf.flags.DEFINE_string("checkpoint_dir", "./runs/1528219258/checkpoints", "Checkpoint directory from training run")
 FLAGS = tf.flags.FLAGS
 
 # Prepare data
@@ -61,9 +63,7 @@ with graph.as_default():
         predictions_ph = graph.get_operation_by_name("accuracy/predictions").outputs[0]
         accuracy_ph = graph.get_operation_by_name("accuracy/accuracy").outputs[0]
 
-        print(test_labels)
-
-        predictions, accuracy = sess.run([predictions_ph,accuracy_ph],
+        predictions, accuracy = sess.run([predictions_ph, accuracy_ph],
                                          {stories_ph: test_stories,
                                           first_endings_ph: first_test_endings,
                                           second_endings_ph: second_test_endings,

@@ -6,13 +6,14 @@ import numpy as np
 import tensorflow as tf
 
 import utils
-from model_relational import RelationalModel
+from model_alternative_ending_aware_classifier import AlternativeEndingAwareClassifier
 
 
 # Data loading parameters
 tf.flags.DEFINE_string("training_embeddings_dir", "./data/embeddings_training/", "Path to the embeddings used for training")
 tf.flags.DEFINE_string("validation_embeddings_dir", "./data/embeddings_validation/", "Path to the embeddings used for validation")
-tf.flags.DEFINE_float("percentage_of_val", 0.50, "Percentage of the val set added to training")
+tf.flags.DEFINE_string("neg_samples_file", "./data/training_neighbours.txt", "Path to the file with the closest pairs")
+tf.flags.DEFINE_boolean("use_val_for_training", True, "If true, use 90% val as training and 10% as val")
 
 # Model parameters
 tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings")
@@ -20,49 +21,45 @@ tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings"
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs")
-tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on validation set after this many steps")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps")
+tf.flags.DEFINE_integer("evaluate_every", 20, "Evaluate model on validation set after this many steps")
+tf.flags.DEFINE_integer("checkpoint_every", 20, "Save model after this many steps")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store")
-
-# Tensorflow Parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
-tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 
 FLAGS = tf.flags.FLAGS
 
 # Prepare the data
 print("Load training and validation embeddings \n")
 
-# load training embeddings
-all_training_embeddings = utils.load_embeddings(FLAGS.training_embeddings_dir,
-                                                FLAGS.embedding_dim)
 
-# load validation embeddings
-all_validation_embeddings = utils.load_embeddings(FLAGS.validation_embeddings_dir,
-                                                  FLAGS.embedding_dim)
+if FLAGS.use_val_for_training:
+    # load validation embeddings
+    all_validation_embeddings = utils.load_embeddings(FLAGS.validation_embeddings_dir,
+                                                      FLAGS.embedding_dim)
 
-# generate training data as np array
-training_stories, training_true_endings, training_wrong_endings = utils.generate_data(all_training_embeddings,
-                                                                                      generate_random_ending=True)
+    # generate val data as np array
+    val_stories, val_true_endings, val_wrong_endings = utils.generate_data(all_validation_embeddings)
 
-# generate val data as np array
-val_stories, val_true_endings, val_wrong_endings = utils.generate_data(all_validation_embeddings,
-                                                                       generate_random_ending=False)
+    # balance val samples into training and validation
+    train_sample_index = int(0.9 * float(len(val_stories)))
+    training_stories, val_stories = val_stories[:train_sample_index], val_stories[train_sample_index:]
+    training_true_endings, val_true_endings = val_true_endings[:train_sample_index], val_true_endings[train_sample_index:]
+    training_wrong_endings, val_wrong_endings = val_wrong_endings[:train_sample_index], val_wrong_endings[train_sample_index:]
 
-# rebalance val and training
-# val_sample_index = int(FLAGS.percentage_of_val * float(len(val_stories)))
-# extra_training_stories, val_stories = val_stories[:val_sample_index], val_stories[val_sample_index:]
-# extra_training_true, val_true_endings = val_true_endings[:val_sample_index], val_true_endings[val_sample_index:]
-# extra_training_wrong, val_wrong_endings = val_wrong_endings[:val_sample_index], val_wrong_endings[val_sample_index:]
-#
-# training_stories = np.concatenate((training_stories, extra_training_stories))
-# training_true_endings = np.concatenate((training_true_endings, extra_training_true))
-# training_wrong_endings = np.concatenate((training_wrong_endings, extra_training_wrong))
+else:
+    # load training embeddings
+    all_training_embeddings = utils.load_embeddings(FLAGS.training_embeddings_dir,
+                                                    FLAGS.embedding_dim)
 
-train_sample_index = int(0.99 * float(len(training_stories)))
-training_stories, val_stories = training_stories[:train_sample_index], training_stories[train_sample_index:]
-training_true_endings, val_true_endings = training_true_endings[:train_sample_index], training_true_endings[train_sample_index:]
-training_wrong_endings, val_wrong_endings = training_wrong_endings[:train_sample_index], training_wrong_endings[train_sample_index:]
+    # generate training data as np array
+    training_stories, training_true_endings, training_wrong_endings = utils.generate_data(all_training_embeddings,
+                                                                                          FLAGS.neg_samples_file)
+
+    # load validation embeddings
+    all_validation_embeddings = utils.load_embeddings(FLAGS.validation_embeddings_dir,
+                                                      FLAGS.embedding_dim)
+
+    # generate val data as np array
+    val_stories, val_true_endings, val_wrong_endings = utils.generate_data(all_validation_embeddings)
 
 # summary
 print('# of training stories: ', len(training_stories), ' with shape: ', np.shape(training_stories))
@@ -75,7 +72,7 @@ print('# of val true end: ', len(val_true_endings), ' with shape: ', np.shape(va
 print('# of val wrong end: ', len(val_wrong_endings), ' with shape: ', np.shape(val_wrong_endings))
 print('\n')
 
-# construct TRAIN input, here both true and wrong in the same data point
+# construct TRAIN input
 training_labels = np.random.choice([0, 1], size=len(training_stories), p=[0.5, 0.5])
 first_training_endings = []
 second_training_endings = []
@@ -115,19 +112,19 @@ print("Loading and preprocessing done \n")
 # Define the model and start training
 with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
-        allow_soft_placement=FLAGS.allow_soft_placement,
-        log_device_placement=FLAGS.log_device_placement,
+        allow_soft_placement=True,
+        log_device_placement=False,
         inter_op_parallelism_threads=0,
         intra_op_parallelism_threads=0)
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         # Initialize model
-        model = RelationalModel(embed_size=FLAGS.embedding_dim)
+        model = AlternativeEndingAwareClassifier(embed_size=FLAGS.embedding_dim)
 
         # Training step
         global_step = tf.Variable(0, name="global_step", trainable=False)
         # Define Adam optimizer
-        learning_rate = 0.0002
+        learning_rate = 0.0001
         optimizer = tf.train.AdamOptimizer(learning_rate)
         train_op = optimizer.minimize(model.loss, global_step=global_step)
 
@@ -172,15 +169,13 @@ with tf.Graph().as_default():
                 model.second_endings: second_endings,
                 model.labels: labels
             }
-            _, step, summaries, loss, accuracy = sess.run([
-                    train_op,
-                    global_step,
-                    train_summary_op,
-                    model.loss,
-                    model.accuracy
-                ],
-                feed_dict
-            )
+            _, step, summaries, loss, accuracy = sess.run([train_op,
+                                                           global_step,
+                                                           train_summary_op,
+                                                           model.loss,
+                                                           model.accuracy],
+                                                          feed_dict)
+
             time_str = datetime.datetime.now().isoformat()
             print('\n\n')
             print("{}: step {}, acc {:g}".format(time_str, step, accuracy))
@@ -203,7 +198,6 @@ with tf.Graph().as_default():
                                                               feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, acc {:g}".format(time_str, step, accuracy))
-            print('Predictions: ', predictions)
             if writer:
                 writer.add_summary(summaries, step)
 
