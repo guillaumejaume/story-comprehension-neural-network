@@ -53,7 +53,7 @@ def load_bin(filename, dim_embeddings):
     return data
 
 
-def load_and_process_text_data(filename, for_testing=False):
+def load_and_process_text_data(filename, for_testing=False, is_labeled = True):
     """ Load a file and create a list of sentences
     Parameters:
     -----------
@@ -66,48 +66,52 @@ def load_and_process_text_data(filename, for_testing=False):
     """
     list_of_sentences = []
     first_line = True
-    with open(filename) as f:
+
+    with open(filename, encoding = 'ISO-8859-1') as f:
         reader = csv.reader(f)
+        story_id = 0
         for row in reader:
-            if first_line:
+            if first_line and row[0] == "InputStoryId":
                 first_line = False
             else:
                 if not for_testing:
-                    list_of_sentences.append(
-                        Story(
-                            row[0],
-                            row[2], #sentence1
-                            row[3], #sentence2
-                            row[4], #sentence3
-                            row[5], #sentence4
-                            row[6]  #right_ending
-                        )
-                    )
+                    id = row[0]
+                    s1 = row[2]
+                    s2 = row[3]
+                    s3 = row[4]
+                    s4 = row[5]
+                    re = row[6]
+                    list_of_sentences.append(Story(id, s1, s2, s3, s4, re))
+
                 else:
-                    if int(row[7]) == 1:
-                        list_of_sentences.append(
-                            Story(
-                                row[0],  # storyid
-                                row[1],  # sentence1
-                                row[2],  # sentence2
-                                row[3],  # sentence3
-                                row[4],  # sentence4
-                                row[5],  # right_ending
-                                row[6]   # wrong_ending
-                            )
-                        )
+                    if is_labeled:
+                        if int(row[7]) == 1:
+                            id = row[0]
+                            s1 = row[1]
+                            s2 = row[2]
+                            s3 = row[3]
+                            s4 = row[4]
+                            re = row[5]
+                            we = row[6]
+                        else:
+                            id = row[0]
+                            s1 = row[1]
+                            s2 = row[2]
+                            s3 = row[3]
+                            s4 = row[4]
+                            re = row[6]
+                            we = row[5]
                     else:
-                        list_of_sentences.append(
-                            Story(
-                                row[0],  # storyid
-                                row[1],  # sentence1
-                                row[2],  # sentence2
-                                row[3],  # sentence3
-                                row[4],  # sentence4
-                                row[6],  # right_ending
-                                row[5]   # wrong_ending
-                            )
-                        )
+                        id = str(story_id)
+                        s1 = row[0]
+                        s2 = row[1]
+                        s3 = row[2]
+                        s4 = row[3]
+                        re = row[4]
+                        we = row[5]
+                        story_id = story_id + 1
+
+                    list_of_sentences.append(Story(id, s1, s2, s3, s4, re, we))
 
     return list_of_sentences
 
@@ -317,90 +321,6 @@ def convert_test_dictionaries_to_lists(beginning_of_story_embeddings, right_endi
 
     return beginning_of_story_embeddings_list, right_ending_embeddings_list, wrong_ending_embeddings_list, right_labels_list, wrong_labels_list
 
-
-def generate_training_data(story_embeddings, story_type, generate_random_ending=True, do_negative_sampling=True):
-    """ Generate training data: embeddings for the beginning of sentence, for the end of sentence and the associated labels [1 for right/ 0 for wrong]
-    Parameters:
-    -----------
-    story_embeddings: dictionary
-    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
-
-    story_type: string
-    (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
-
-    generate_random_ending: bool
-    if set, it is used to generate a random ending. Useful for datasets where's no wrong ending.
-
-    do_negative_sampling: bool
-    generate negative sampling
-    Returns:
-    --------
-    beginning_of_story_embeddings: dictionary
-    dictionary with the embeddings for the beginning of story
-
-    ending_embeddings: dictionary
-    dictionary with the embeddings for the ending of story
-
-    labels: dictionary
-    dictionary of labels
-    """
-    beginning_of_story_embeddings = select_embeddings_for_model(story_embeddings, story_type)  # positive sampling
-    ending_embeddings, labels = select_endings(story_embeddings)  # positive sampling
-
-    print("generate_training_data")
-    if do_negative_sampling:
-        print("negative sampling")
-        beginning_of_story_embeddings.update(select_embeddings_for_model(story_embeddings, story_type, has_right_ending=False)) # negative sampling
-        if generate_random_ending:
-            print("generate random embeddings")
-            temp_ending_embeddings, temp_labels = select_random_ending(story_embeddings)
-        else:
-            print("don't generate random embeddings")
-            temp_ending_embeddings, temp_labels = select_endings(story_embeddings, has_right_ending = False)
-        ending_embeddings.update(temp_ending_embeddings)
-        labels.update(temp_labels)
-
-    beginning_of_story_embeddings, ending_embeddings, labels = convert_training_dictionaries_to_lists(beginning_of_story_embeddings, ending_embeddings, labels)
-
-    return beginning_of_story_embeddings,  ending_embeddings, labels
-
-
-def generate_training_data2(story_embeddings, story_type, generate_random_ending=True):
-    """ Generate training data: embeddings for the beginning of sentence,
-        for the end of sentence and the associated labels [1 for right/ 0 for wrong]
-    Parameters:
-    -----------
-    story_embeddings: dictionary
-        dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
-    story_type: string
-        (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
-    generate_random_ending: bool
-        if set, it is used to generate a random ending. Useful for datasets where's no wrong ending. The dataset is
-    Returns:
-    --------
-    beginning_of_story_embeddings: dictionary
-        dictionary with the embeddings for the beginning of story
-    ending_embeddings: dictionary
-        dictionary with the embeddings for the ending of story
-    labels: dictionary
-        dictionary of labels
-    """
-    is_right_ending = False  # negative sampling
-    beginning_of_story_embeddings = select_embeddings_for_model(story_embeddings, story_type)  # positive sampling
-    beginning_of_story_embeddings.update(select_embeddings_for_model(story_embeddings, story_type, False)) # negative sampling
-    ending_embeddings, labels = select_endings(story_embeddings) # positive sampling
-    if generate_random_ending:
-        temp_ending_embeddings, temp_labels = select_random_ending(story_embeddings)
-    else:
-        temp_ending_embeddings, temp_labels = select_ending(story_embeddings, is_right_ending)
-
-    ending_embeddings.update(temp_ending_embeddings)
-    labels.update(temp_labels)
-    beginning_of_story_embeddings, ending_embeddings, labels = convert_training_dictionaries_to_lists(beginning_of_story_embeddings, ending_embeddings, labels)
-
-    return beginning_of_story_embeddings,  ending_embeddings, labels
-
-
 def generate_data(all_embeddings, neg_samples_file=''):
 
     stories = []
@@ -424,6 +344,9 @@ def generate_data(all_embeddings, neg_samples_file=''):
             true_ending = val[4]  # true ending
             if len(val) > 5:
                 wrong_ending = val[5]
+                wrong_endings.append(wrong_ending)
+            else:
+                wrong_ending = all_embeddings[random.choice(all_keys)][4]
                 wrong_endings.append(wrong_ending)
             stories.append(story)
             true_endings.append(true_ending)
@@ -451,87 +374,6 @@ def find_closest_ending(current_key, all_keys, all_embeddings):
             min_dist = dist
             min_key = key
     return min_key
-
-
-def generate_validation_data(story_embeddings, story_type):
-    """ Generate validation data: embeddings for the beginning of sentence, for the end of sentence and the associated labels [1 for right/ 0 for wrong]
-    Parameters:
-    -----------
-    story_embeddings: dictionary
-    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
-
-    story_type: string
-    (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
-
-    Returns:
-    --------
-    beginning_of_story_embeddings: dictionary
-    dictionary with the embeddings for the beginning of story
-
-    ending_embeddings: dictionary
-    dictionary with the embeddings for the ending of story
-
-    labels: dictionary
-    dictionary of labels
-    """
-    is_right_ending = False  # negative sampling
-    modify_key = True
-    beginning_of_story_embeddings = select_embeddings_for_model(story_embeddings, story_type)  # positive sampling
-    ending_embeddings, labels = select_endings(story_embeddings)  # positive sampling
-    temp_ending_embeddings, temp_labels = select_endings(story_embeddings, is_right_ending, modify_key) # negative sampling
-    ending_embeddings.update(temp_ending_embeddings)
-    labels.update(temp_labels)
-
-    beginning_of_story_embeddings, ending_embeddings, labels = convert_training_dictionaries_to_lists(
-        beginning_of_story_embeddings, ending_embeddings, labels)
-
-    return beginning_of_story_embeddings, ending_embeddings, labels
-
-
-def generate_test_data(story_embeddings, story_type):
-    """ Generate data: embeddings for the beginning of sentence, for the end of sentence and the associated labels [1 for right/ 0 for wrong]
-    Parameters:
-    -----------
-    story_embeddings: dictionary
-    dictionary of embeddings {key: [emb_s1, emb_s2, emb_s3, emb_s4, emb_end1 (, emb_end2)]}
-
-    story_type: string
-    (full - all 5 sentences), (plot = first 4 sentences), (last_sentence = the 4th sentence)
-
-    Returns:
-    --------
-    beginning_of_story_embeddings: list
-    list of embeddings
-
-    right_ending_embeddings: list
-    list of embeddings
-
-    wrong_ending_embeddings: list
-    list of embeddings
-
-    right_labels: list
-    list of labels
-
-    wrong_labels: list
-    list of labels
-    """
-    is_right_ending = False # negative sampling
-    modify_key = False
-
-    beginning_of_story_embeddings = select_embeddings_for_model(story_embeddings, story_type)
-    right_ending_embeddings, right_labels = select_endings(story_embeddings) # positive sampling
-    wrong_ending_embeddings, wrong_labels = select_ending(story_embeddings, is_right_ending, modify_key)
-
-    beginning_of_story_embeddings, right_ending_embeddings, wrong_ending_embeddings, right_labels, wrong_labels  = convert_test_dictionaries_to_lists(
-        beginning_of_story_embeddings,
-        right_ending_embeddings,
-        wrong_ending_embeddings,
-        right_labels,
-        wrong_labels
-    )
-
-    return beginning_of_story_embeddings, right_ending_embeddings, wrong_ending_embeddings, right_labels, wrong_labels
-
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
