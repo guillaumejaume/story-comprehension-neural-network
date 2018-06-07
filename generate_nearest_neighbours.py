@@ -7,6 +7,7 @@ from itertools import islice
 import time
 
 def generate_neighbours(embeddings, file, threadId):
+
     f = open(file + str(threadId) + ".txt", "a")
     start_time = time.time()
     i = 0
@@ -15,22 +16,13 @@ def generate_neighbours(embeddings, file, threadId):
         keys.remove(key)
         closest_key = utils.find_closest_ending(key, keys, embeddings)
         wrong_ending = embeddings[closest_key][4]
-        #print(str(threadId) + ' current key: ', key)
-        #print(' closest key: ', closest_key)
-        #print('\n')
         neighbours = key + " " + closest_key
         f.write("%s\n" % neighbours)
-        i = i + 1
-        if i % 1000 == 0:
-            print(str(threadId ) + " " + str(i) + " iterations")
-    f.write("--- %s seconds ---" % str(time.time() - start_time))
-    f.write("--- %s seconds for ---" % str(time.time() - start_time))
     f.close()
     print("--- %s seconds for ---" % str(time.time() - start_time))
 
 
 def divide_data(data, size):
-    divided_data = []
     it = iter(data)
 
     for i in range(0, len(data), size):
@@ -40,7 +32,7 @@ def divide_data(data, size):
 training_embeddings_dir = "./data/embeddings_training/"
 validation_embeddings_dir = "./data/embeddings_validation/"
 embedding_dim = 4800
-num_threads = 4
+num_threads = 1
 training_output_file = "training_neighbours_"
 validation_output_file = "validation_neighbours_"
 # load training embeddings

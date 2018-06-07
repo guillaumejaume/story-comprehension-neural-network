@@ -6,8 +6,8 @@ import numpy as np
 import tensorflow as tf
 
 import utils
-from classification_model import ClassificationModel
-from relational_classification_model import RelationalClassificationModel
+from toy_classification_model import ClassificationModel
+from classification_model import RelationalClassificationModel
 
 
 # Data loading parameters

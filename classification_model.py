@@ -1,72 +1,111 @@
 import tensorflow as tf
+import numpy as np
 
-
-class ClassificationModel:
+class RelationalClassificationModel:
     """
-    Simple model with 3 fc hidden layers
+    New contributions:
+        - Weighted sum of each sentence embedding to construct a story embedding
+        - Move from a classification task to a "Find the most likely option between 2 options"
 
     """
 
-    def __init__(self):
+    def __init__(self, embed_size):
 
-        self.embed_size = 4800
+        self.embed_size = embed_size
+
         # story place holder dim = [batch_size x #sent x emd_dim]
         self.stories = tf.placeholder(
             dtype=tf.float32,
             shape=[None, 4, self.embed_size],
-            name='stories'
-        )
+            name='stories')
+
         # ending place holder dim = [batch_size x emd_dim]
         self.endings = tf.placeholder(
             dtype=tf.float32,
             shape=[None, self.embed_size],
-            name='endings'
-        )
+            name='endings')
+
         # labels place holder dim = [batch_size]
         self.labels = tf.placeholder(
             dtype=tf.int32,
             shape=None,
-            name='labels'
-        )
+            name='labels')
+
+        self.has_labels = tf.placeholder(
+            dtype=tf.bool,
+            name='has_labels')
+
+        self.state_size = 64
 
         with tf.device('/gpu:0'):
-            with tf.variable_scope("dense_layers"):
 
-                 #self.stories[:, 0, :] + \
-                              #self.stories[:, 1, :] + \
-                              #self.stories[:, 2, :] + \
-                self.inputs = self.stories[:, 3, :] + self.endings
+            with tf.variable_scope("relational_network", reuse=tf.AUTO_REUSE):
 
-                dense_1 = tf.layers.dense(inputs=self.inputs, units=2400, activation=tf.nn.relu)
-                dense_2 = tf.layers.dense(inputs=dense_1, units=1200, activation=tf.nn.relu)
-                dense_3 = tf.layers.dense(inputs=dense_2, units=600, activation=tf.nn.relu)
+                self.r_1 = self.relational_network(self.stories[:, 0, :], self.endings)
+                self.r_2 = self.relational_network(self.stories[:, 1, :], self.endings)
+                self.r_3 = self.relational_network(self.stories[:, 2, :], self.endings)
+                self.r_4 = self.relational_network(self.stories[:, 3, :], self.endings)
 
-                self.logits = tf.layers.dense(inputs=dense_3, units=2)
-                self.probabilities = tf.nn.softmax(self.logits, name = 'probabilities')
+                self.r = self.r_1 + self.r_2 + self.r_3 + self.r_4
+
+            with tf.variable_scope("sigma"):
+
+                # 2 MLP layers with ReLu activation and dropout
+                dense_1 = tf.contrib.layers.fully_connected(self.r, 2400, scope='sigma_1')
+                dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='sigma_2')
+                dropout_1 = tf.layers.dropout(dense_2, rate=0.5)
+
+
+            with tf.variable_scope("softmax"):
+
+                # softmax layer
+                self.logits = tf.contrib.layers.fully_connected(dropout_1, 2, scope='sigma_4', activation_fn=None)
+                self.probabilities = tf.nn.softmax(self.logits, name='probabilities')
 
             with tf.variable_scope("loss"):
-                print('labels: ', self.labels.shape)
-                print('logits: ', self.logits.shape)
 
-                self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.labels,
-                                                                           logits=self.logits)
+                self.loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+                    labels=self.labels,
+                    logits=self.logits)
                 self.loss = tf.reduce_mean(self.loss)
 
             with tf.variable_scope("accuracy"):
-
-                print('proba: ', self.probabilities.shape)
 
                 self.predictions = tf.argmax(
                     self.probabilities,
                     axis=1,
                     name='predictions',
-                    output_type=tf.int32
-                )
+                    output_type=tf.int32)
 
                 self.is_equal = tf.equal(self.predictions, self.labels)
                 self.accuracy = tf.reduce_mean(
                     tf.cast(self.is_equal, tf.float32),
-                    name='accuracy'
-                )
+                    name='accuracy')
 
+    def relational_network(self, object_1, object_2):
+        """ Relational network: 3 dense layers
+            - ReLU activation for dense 1 & 2
+            - Linear activation for dense 3
+              Parameters:
+              -----------
+              - self: this
+              - use_true: boolean
+                if True -> use first ending for similarity
+                else -> use second ending
 
+              Returns:
+              ----------
+              r: similarity between the story and the ending
+        """
+        # if use_first_ending:
+        #     x = tf.concat([self.embedded_story, self.first_endings], axis=1)
+        # else:
+        #     x = tf.concat([self.embedded_story, self.second_endings], axis=1)
+
+        x = tf.concat([object_1, object_2], axis=1)
+
+        dense_1 = tf.contrib.layers.fully_connected(x, 1200, scope='f_1')
+        dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='f_2', activation_fn=None)
+        dense_3 = tf.contrib.layers.fully_connected(dense_2, 1200, scope='f_3', activation_fn=None)
+
+        return dense_3
