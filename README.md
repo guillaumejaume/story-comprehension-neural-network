@@ -25,7 +25,7 @@ If one wants to generate Skip Thought Embeddings for a new dataset, one should p
 
 Run the following commands in terminal:
 ./story-comprehension-neural-network/script_install_skip_thought_dependencies.sh
-pip2 install -r story-comprehension-neural-network/requirements_python2.txt
+pip2 install -r story-comprehension-neural-network/requirements_skip_thought_embeddings.txt
 
 - modify story-comprehension-neural-network/skip-thoughts/skipthoughts.py at line 23 and 24 with the path to the models downloaded
 eg. absolute path of the story-comprehension-neural-network/skip-thoughts/models/
