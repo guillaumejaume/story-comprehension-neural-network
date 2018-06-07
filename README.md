@@ -23,23 +23,16 @@ The generated vectors for:
 
 If one wants to generate Skip Thought Embeddings for a new dataset, one should pursue the following steps:
 
-#clone the Skip Thought project and install the prerequisites
-git clone https://github.com/ryankiros/skip-thoughts.git
-cd skip-thoughts
-mkdir models
-cd models
-wget http://www.cs.toronto.edu/~rkiros/models/dictionary.txt
-wget http://www.cs.toronto.edu/~rkiros/models/utable.npy
-wget http://www.cs.toronto.edu/~rkiros/models/btable.npy
-wget http://www.cs.toronto.edu/~rkiros/models/uni_skip.npz
-wget http://www.cs.toronto.edu/~rkiros/models/uni_skip.npz.pkl
-wget http://www.cs.toronto.edu/~rkiros/models/bi_skip.npz
-wget http://www.cs.toronto.edu/~rkiros/models/bi_skip.npz.pkl
+Run the following commands in terminal:
+./story-comprehension-neural-network/script_install_skip_thought_dependencies.sh
+pip2 install -r story-comprehension-neural-network/requirements_python2.txt
 
-pip2 install -r requirements_python2.txt
+- modify story-comprehension-neural-network/skip-thoughts/skipthoughts.py at line 23 and 24 with the path to the models downloaded
+eg. absolute path of the story-comprehension-neural-network/skip-thoughts/models/
+- modify story-comprehension-neural-network/generate_skip_thought_embeddings.py at line 106 with the appropriate paths
+to the new dataset and the directories that will store the generated embeddings
 
-# modify skip-thoughts/skipthoughts.py at line 23 and 24 with the path to the models downloaded
-# modify story-comprehension-neural-network/generate_skip_thought_embeddings.py at line 106 with the appropriate paths
+Run the following commands in terminal:
 python2 -c "import nltk; nltk.download('punkt')"
 python2 generate_skip_thought_embeddings.py
 
