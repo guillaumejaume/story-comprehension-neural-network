@@ -1,11 +1,8 @@
 import numpy as np
 import csv
-import re
-import codecs
 import random
 import scipy
 
-from random import randint
 from story import Story
 
 
@@ -65,7 +62,7 @@ def load_and_process_text_data(filename, for_testing=False, is_labeled = True):
     list_of_sentences = []
     first_line = True
 
-    with open(filename, encoding = 'ISO-8859-1') as f:
+    with open(filename, encoding='ISO-8859-1') as f:
         reader = csv.reader(f)
         story_id = 0
         for row in reader:
@@ -133,40 +130,6 @@ def load_embeddings(embeddings_input_path, embeddings_dim):
         embeddings[story_ids[i]] = emb
     return embeddings
 
-def convert_training_dictionaries_to_lists(beginning_of_story_embeddings, ending_embeddings, labels):
-    """ Convert dictionaries to list
-    Parameters:
-    -----------
-    beginning_of_story_embeddings: dictionary
-    dictionary of embeddings {key: value}
-
-    ending_embeddings: dictionary
-    dictionary of embeddings {key: value}
-
-    labels: dictionary
-    dictionary of labels {key: value}
-
-    Returns:
-    --------
-    beginning_of_story_embeddings_list: list
-    list of embeddings
-
-    ending_embeddings_list: list
-    list of embeddings
-
-    labels_list: list
-    list of embeddings
-
-    """
-    beginning_of_story_embeddings_list = []
-    ending_embeddings_list = []
-    labels_list = []
-    for i, key in enumerate(beginning_of_story_embeddings):
-        beginning_of_story_embeddings_list.append(beginning_of_story_embeddings[key])
-        ending_embeddings_list.append(ending_embeddings[key])
-        labels_list.append(labels[key])
-
-    return beginning_of_story_embeddings_list,  ending_embeddings_list, labels_list
 
 def generate_data(all_embeddings, neg_samples_file=''):
     """ Given a dictionary containing the embeddings of the sentences generate arrays of stories, correct-endings and
@@ -201,7 +164,6 @@ def generate_data(all_embeddings, neg_samples_file=''):
         closest_ending_pairs = get_closest_pairs(neg_samples_file)
 
     for key, val in all_embeddings.items():
-        # @TODO Reorganize later, brute force now
         if neg_samples_file and key in closest_ending_pairs:
             story = val[:4]  # list of 4 array of 4800 float
             correct_ending = val[4]  # true ending
@@ -225,6 +187,7 @@ def generate_data(all_embeddings, neg_samples_file=''):
 
     return np.asarray(stories), np.asarray(correct_endings), np.asarray(wrong_endings)
 
+
 def get_closest_pairs(neg_samples_file):
     all_pairs = {}
     with open(neg_samples_file) as f:
@@ -247,6 +210,7 @@ def find_closest_ending(current_key, all_keys, all_embeddings):
             min_key = key
     return min_key
 
+
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
     Generates a batch iterator for a dataset.
@@ -267,21 +231,12 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
             yield shuffled_data[start_index:end_index]
 
 
-def write_list_to_file(list_to_write, file_name):
-    file = open(file_name, "w")
-    for item in list_to_write:
-        file.write("%s\n" % item)
-
-    file.close()
-
 def shuffle_data(a, b, c):
     """ Shuffle data
     Parameters:
     -----------
     a: list
-
     b: list
-
     c: list
 
     Returns:
@@ -292,6 +247,7 @@ def shuffle_data(a, b, c):
     a, b, c = zip(*data)
 
     return a, b, c
+
 
 def write_results_to_csv(filename, stories, results):
     with open(filename, "w") as f:
