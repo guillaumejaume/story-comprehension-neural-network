@@ -1,11 +1,8 @@
 import tensorflow as tf
-import numpy as np
 
 class RelationalClassificationModel:
     """
-    New contributions:
-        - Weighted sum of each sentence embedding to construct a story embedding
-        - Move from a classification task to a "Find the most likely option between 2 options"
+    @TODO
 
     """
 
@@ -31,12 +28,6 @@ class RelationalClassificationModel:
             shape=None,
             name='labels')
 
-        self.has_labels = tf.placeholder(
-            dtype=tf.bool,
-            name='has_labels')
-
-        self.state_size = 64
-
         with tf.device('/gpu:0'):
 
             with tf.variable_scope("relational_network", reuse=tf.AUTO_REUSE):
@@ -48,18 +39,15 @@ class RelationalClassificationModel:
 
                 self.r = self.r_1 + self.r_2 + self.r_3 + self.r_4
 
-            with tf.variable_scope("sigma"):
-
                 # 2 MLP layers with ReLu activation and dropout
                 dense_1 = tf.contrib.layers.fully_connected(self.r, 2400, scope='sigma_1')
                 dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='sigma_2')
                 dropout_1 = tf.layers.dropout(dense_2, rate=0.5)
 
-
             with tf.variable_scope("softmax"):
 
                 # softmax layer
-                self.logits = tf.contrib.layers.fully_connected(dropout_1, 2, scope='sigma_4', activation_fn=None)
+                self.logits = tf.contrib.layers.fully_connected(dropout_1, 2, scope='sigma_3', activation_fn=None)
                 self.probabilities = tf.nn.softmax(self.logits, name='probabilities')
 
             with tf.variable_scope("loss"):
@@ -97,10 +85,6 @@ class RelationalClassificationModel:
               ----------
               r: similarity between the story and the ending
         """
-        # if use_first_ending:
-        #     x = tf.concat([self.embedded_story, self.first_endings], axis=1)
-        # else:
-        #     x = tf.concat([self.embedded_story, self.second_endings], axis=1)
 
         x = tf.concat([object_1, object_2], axis=1)
 
