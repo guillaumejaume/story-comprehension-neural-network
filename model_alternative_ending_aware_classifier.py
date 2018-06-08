@@ -169,7 +169,6 @@ class AlternativeEndingAwareClassifier:
         x = tf.concat([object_1, object_2], axis=1)
 
         dense_1 = tf.contrib.layers.fully_connected(x, 2400, scope='f_1')
-        dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='f_2')
-        dense_3 = tf.contrib.layers.fully_connected(dense_2, 1200, scope='f_3', activation_fn=None)
+        dense_2 = tf.contrib.layers.fully_connected(dense_1, 1200, scope='f_2', activation_fn=None)
 
-        return dense_3
+        return dense_2
