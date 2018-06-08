@@ -8,13 +8,14 @@ import utils
 tf.flags.DEFINE_string("testing_embeddings_dir", "./data/embeddings_test_eth/", "Path to the embeddings used for testing")
 tf.flags.DEFINE_string("testing_stories", "./data/test_nlu18.csv", "Path to the file with the stories.")
 
+
 # Model parameters
 tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings")
 
 # Testing parameters
-tf.flags.DEFINE_string("checkpoint_dir", "./runs/1528379186/checkpoints", "Checkpoint directory from training run")
+tf.flags.DEFINE_string("checkpoint_dir", "./runs/1528468039/checkpoints", "Checkpoint directory from training run")
 tf.flags.DEFINE_string("output_file", "./output.csv", "Csv file containing the results")
-tf.flags.DEFINE_boolean("has_labels", True, "if has_labels => compute accuracy, if not dump output in file")
+tf.flags.DEFINE_boolean("has_labels", False, "if has_labels => compute accuracy, if not dump output in file")
 
 FLAGS = tf.flags.FLAGS
 

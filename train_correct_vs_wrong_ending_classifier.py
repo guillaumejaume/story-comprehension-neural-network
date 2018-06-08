@@ -12,7 +12,7 @@ from model_correct_vs_wrong_ending_classifier import CorrectVsWrongEndingClassif
 # Data loading parameters
 tf.flags.DEFINE_string("training_embeddings_dir", "./data/embeddings_training/", "Path to the embeddings used for training")
 tf.flags.DEFINE_string("validation_embeddings_dir", "./data/embeddings_validation/", "Path to the embeddings used for validation")
-tf.flags.DEFINE_string("training_negative_sampling_file", "./training_neighbours.txt", "Path to the file used for negative sampling for training dataset")
+tf.flags.DEFINE_string("training_negative_sampling_file", "./data/training_neighbours.txt", "Path to the file used for negative sampling for training dataset")
 
 # Model parameters
 tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings")
@@ -25,7 +25,7 @@ tf.flags.DEFINE_integer("checkpoint_every", 20, "Save model after this many step
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store")
 
 # Tensorflow Parameters
-tf.flags.DEFINE_boolean("use_training_dataset", True, "Use training dataset")
+tf.flags.DEFINE_boolean("use_training_dataset", True, "Use training dataset for training")
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 
@@ -37,7 +37,7 @@ print("Load training and validation embeddings \n")
 # load training embeddings and generate training data
 if FLAGS.use_training_dataset:
     all_training_embeddings = utils.load_embeddings(FLAGS.training_embeddings_dir, FLAGS.embedding_dim)
-    training_stories, training_true_endings, training_wrong_endings = utils.generate_data(all_training_embeddings)
+    training_stories, training_true_endings, training_wrong_endings = utils.generate_data(all_training_embeddings, FLAGS.training_negative_sampling_file)
 
     print("len(training_true_endings), len(training_wrong_endings)", len(training_true_endings), len(training_wrong_endings))
     training_stories = np.concatenate((training_stories, training_stories), axis=0)
