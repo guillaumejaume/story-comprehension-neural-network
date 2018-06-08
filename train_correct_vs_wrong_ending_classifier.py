@@ -7,7 +7,7 @@ import tensorflow as tf
 
 import utils
 
-from classification_model import RelationalClassificationModel
+from model_correct_vs_wrong_ending_classifier import CorrectVsWrongEndingClassifier
 
 # Data loading parameters
 tf.flags.DEFINE_string("training_embeddings_dir", "./data/embeddings_training/", "Path to the embeddings used for training")
@@ -94,7 +94,7 @@ with tf.Graph().as_default():
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         # Initialize model
-        model = RelationalClassificationModel(FLAGS.embedding_dim)
+        model = CorrectVsWrongEndingClassifier(FLAGS.embedding_dim)
 
         # Training step
         global_step = tf.Variable(0, name="global_step", trainable=False)
