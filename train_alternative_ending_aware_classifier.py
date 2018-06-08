@@ -13,7 +13,7 @@ from model_alternative_ending_aware_classifier import AlternativeEndingAwareClas
 tf.flags.DEFINE_string("training_embeddings_dir", "./data/embeddings_training/", "Path to the embeddings used for training")
 tf.flags.DEFINE_string("validation_embeddings_dir", "./data/embeddings_validation/", "Path to the embeddings used for validation")
 tf.flags.DEFINE_string("neg_samples_file", "./data/training_neighbours.txt", "Path to the file with the closest pairs")
-tf.flags.DEFINE_boolean("use_val_for_training", True, "If true, use 90% val as training and 10% as val")
+tf.flags.DEFINE_boolean("use_val_for_training", False, "If true, use 90% val as training and 10% as val")
 
 # Model parameters
 tf.flags.DEFINE_integer("embedding_dim", 4800, "The dimension of the embeddings")
@@ -124,7 +124,7 @@ with tf.Graph().as_default():
         # Training step
         global_step = tf.Variable(0, name="global_step", trainable=False)
         # Define Adam optimizer
-        learning_rate = 0.0001
+        learning_rate = 0.00001
         optimizer = tf.train.AdamOptimizer(learning_rate)
         train_op = optimizer.minimize(model.loss, global_step=global_step)
 
