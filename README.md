@@ -43,7 +43,7 @@ python2 generate_skip_thought_embeddings.py
 [1]  https://polybox.ethz.ch/index.php/s/l2wM4RIyI3pD7Tl/download <br/>
 [2]  https://polybox.ethz.ch/index.php/s/02IVLdBAgVcsJAx/download <br/>
 [3]  https://github.com/ryankiros/skip-thoughts <br/>
-[4]  https://polybox.ethz.ch/index.php/s/I8S0FAbENSKsgtB
-[5]  https://polybox.ethz.ch/index.php/s/helYFHS8criZp7z
-[6]  https://polybox.ethz.ch/index.php/s/AKbA8g7SeHwjU0R
+[4]  https://polybox.ethz.ch/index.php/s/I8S0FAbENSKsgtB <br/>
+[5]  https://polybox.ethz.ch/index.php/s/helYFHS8criZp7z <br/>
+[6]  https://polybox.ethz.ch/index.php/s/AKbA8g7SeHwjU0R <br/>
 [7]  https://polybox.ethz.ch/index.php/s/XfeWseNSZcndP4a
