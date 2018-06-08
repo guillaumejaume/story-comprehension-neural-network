@@ -17,7 +17,7 @@ The generated vectors for:
  - the training dataset [1] can be found at [4].
  - the validation dataset [2] can be found at [5].
  - the ETH test dataset [6] can be found at [7].
- - the story-cloze test set [8] can be found at [9].
+ - the story-cloze test set [8] can be found at [9]. <\br>
 They should be downloaded and decompressed in the ./data directory.
 
 We have implemented two models:
